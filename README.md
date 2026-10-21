@@ -8,38 +8,6 @@ Everything is real-time 3D (Three.js), every sound is synthesized in code (Web A
 and the whole thing runs through a VHS shader modeled on exorciseyourex.com/kit
 (their exact vignette + scanline CSS sits on top).
 
-## Run it
-
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:5173. Headphones help.
-
-## Put it on your website
-
-```bash
-npm run build
-```
-
-The build lands in `traced/`. Upload that folder to your site's web root
-(e.g. `public_html/traced/` → `yoursite.com/traced/`). It's all relative paths,
-so any sub-folder name works. No server code, no database, and no third-party
-requests (the fonts are bundled).
-
-## Things you'll probably want to change
-
-| What | Where |
-| --- | --- |
-| **The final message** | `src/scenes/endings.js` → `MESSAGE` at the top |
-| Ending text per ending | `src/scenes/endings.js` → `ENDING_LINES` |
-| The blackmailer's phone call | `src/story.js` → `theCall()` |
-| Police timer (minutes) | `src/game/state.js` → `BASE_ETA_MIN` |
-| Prices, income, upgrades | `src/game/state.js` (`HARDWARE`, `COOLING`, `OPSEC`, `MISC`) |
-| Story beats (calls, sirens, knocks) | `src/game/director.js` → `beats` |
-| VHS look | `src/core/vhs.js` (uniform defaults at the top) |
-
 ### The Dashie easter egg
 
 FlashBang.swf (the arcade app) has a "featured let's player" with a cartoon face.
