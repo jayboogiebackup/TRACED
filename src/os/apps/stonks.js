@@ -85,27 +85,29 @@ export const Stonks = {
       draw(g, w, h) {
         const t = T[S.sel];
         // left: ticker list
-        const lw = 270;
+        const M = g.mobile;
+        const lw = 270, rowH = M ? 66 : 78, row0 = M ? 50 : 64;
         g.rect(0, 0, lw, h, '#0c1011');
-        g.text('ST0NKS', 18, 42, { size: 40, font: HEAD, color: C.green });
+        g.text('ST0NKS', 18, M ? 36 : 42, { size: M ? 34 : 40, font: HEAD, color: C.green });
         let pv = 0;
         T.forEach((x, i) => {
-          const y = 64 + i * 78;
+          const y = row0 + i * rowH;
+          const bh = rowH - 8;
           const ch = x.price / x.hist[x.hist.length - 21] - 1;
           const on = i === S.sel;
-          if (g.hit('tk' + i, 8, y, lw - 16, 70)) S.sel = i;
-          g.rect(8, y, lw - 16, 70, on ? '#17201f' : g.over(8, y, lw - 16, 70) ? '#131a1a' : '#0f1414');
-          if (on) g.rect(8, y, 4, 70, x.color);
-          g.text('$' + x.sym, 22, y + 28, { size: 20, bold: true, color: x.color });
-          g.text(price(x.price), lw - 22, y + 28, { size: 18, bold: true, align: 'right' });
-          g.text(`${ch >= 0 ? '▲' : '▼'} ${(ch * 100).toFixed(1)}%`, lw - 22, y + 54, { size: 15, align: 'right', color: ch >= 0 ? C.green : C.red });
-          if (x.held) g.text(`held ${short(x.held)}`, 22, y + 54, { size: 14, color: C.dim });
+          if (g.hit('tk' + i, 8, y, lw - 16, bh)) S.sel = i;
+          g.rect(8, y, lw - 16, bh, on ? '#17201f' : g.over(8, y, lw - 16, bh) ? '#131a1a' : '#0f1414');
+          if (on) g.rect(8, y, 4, bh, x.color);
+          g.text('$' + x.sym, 22, y + bh * 0.4, { size: 20, bold: true, color: x.color });
+          g.text(price(x.price), lw - 22, y + bh * 0.4, { size: 18, bold: true, align: 'right' });
+          g.text(`${ch >= 0 ? '▲' : '▼'} ${(ch * 100).toFixed(1)}%`, lw - 22, y + bh * 0.8, { size: 15, align: 'right', color: ch >= 0 ? C.green : C.red });
+          if (x.held) g.text(`held ${short(x.held)}`, 22, y + bh * 0.8, { size: 14, color: C.dim });
           pv += x.held * x.price;
         });
         // $RUG mirror
         const rug = G.chirp && G.chirp.coin.launched ? G.chirp.coin : null;
-        if (rug) {
-          const y = 64 + T.length * 78;
+        if (rug && !M) {
+          const y = row0 + T.length * rowH;
           g.rect(8, y, lw - 16, 56, '#140f1a');
           g.text('$RUG', 22, y + 24, { size: 20, bold: true, color: C.purple });
           g.text(rug.pulled ? 'rugged' : '$' + rug.price.toFixed(5), lw - 22, y + 24, { size: 16, bold: true, align: 'right', color: rug.pulled ? C.red : C.text });
@@ -118,14 +120,17 @@ export const Stonks = {
         const cx = lw + 20, cw = w - lw - 40;
         g.text(t.name, cx, 36, { size: 22, bold: true });
         g.text(price(t.price), cx + cw, 38, { size: 30, font: HEAD, align: 'right', color: t.color });
-        const gy = 56, gh = h - 330;
+        const gy = 56, gh = h - (M ? 250 : 330);
         g.rect(cx, gy, cw, gh, '#070a0b');
         g.stroke(cx, gy, cw, gh, C.border);
         const mx = Math.max(...t.hist), mn = Math.min(...t.hist);
-        for (let i = 1; i < 4; i++) {
-          const yy = gy + (gh * i) / 4;
-          g.line(cx, yy, cx + cw, yy, '#10171a');
-          g.text(price(mx - ((mx - mn) * i) / 4), cx + cw - 6, yy - 4, { size: 12, align: 'right', color: C.faint });
+        // price labels live in a gutter on the right so the line never runs through them
+        const pw = cw - 70;
+        g.rect(cx + pw, gy + 1, 69, gh - 2, '#0a0e0f');
+        for (let i = 0; i <= 4; i++) {
+          const yy = gy + 8 + ((gh - 16) * i) / 4;
+          if (i > 0 && i < 4) g.line(cx, yy, cx + pw, yy, '#10171a');
+          g.text(price(mx - ((mx - mn) * i) / 4), cx + cw - 8, yy + 4, { size: 12, align: 'right', color: C.dim });
         }
         const ctx = g.ctx;
         const up = t.price >= t.hist[0];
@@ -133,33 +138,37 @@ export const Stonks = {
         grd.addColorStop(0, up ? 'rgba(92,240,138,0.25)' : 'rgba(255,92,92,0.25)');
         grd.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.beginPath();
+        let lastY = 0;
         t.hist.forEach((p, i) => {
-          const xx = cx + (i / (t.hist.length - 1)) * cw;
+          const xx = cx + (i / (t.hist.length - 1)) * pw;
           const yy = gy + gh - 8 - ((p - mn) / Math.max(1e-9, mx - mn)) * (gh - 16);
+          lastY = yy;
           i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
         });
         ctx.strokeStyle = up ? C.green : C.red;
         ctx.lineWidth = 2.5;
         ctx.stroke();
-        ctx.lineTo(cx + cw, gy + gh);
+        ctx.lineTo(cx + pw, gy + gh);
         ctx.lineTo(cx, gy + gh);
         ctx.fillStyle = grd;
         ctx.fill();
+        // live price marker
+        g.circle(cx + pw, lastY, 4 + Math.sin(g.t * 6) * 1.2, up ? C.green : C.red);
         if (t.held) {
           const avg = t.cost / t.held;
           const yy = gy + gh - 8 - ((avg - mn) / Math.max(1e-9, mx - mn)) * (gh - 16);
           if (yy > gy && yy < gy + gh) {
             ctx.setLineDash([6, 6]);
-            g.line(cx, yy, cx + cw, yy, C.amber, 1.5);
+            g.line(cx, yy, cx + pw, yy, C.amber, 1.5);
             ctx.setLineDash([]);
             g.text(`your avg ${price(avg)}`, cx + 8, yy - 6, { size: 13, color: C.amber });
           }
         }
 
         // trade panel
-        let y = gy + gh + 22;
+        let y = gy + gh + (M ? 18 : 22);
         const pnl = t.held * t.price - t.cost;
-        g.text(`You own ${short(t.held)} $${t.sym}  =  ${money(t.held * t.price)}`, cx, y + 4, { size: 18, bold: true });
+        g.text(`You own ${short(t.held)} $${t.sym}  =  ${money(t.held * t.price)}`, cx, y + 4, { size: M ? 16 : 18, bold: true, max: t.held ? cw - 170 : cw });
         if (t.held) g.text(`P/L ${pnl >= 0 ? '+' : ''}${money(pnl)}`, cx + cw, y + 4, { size: 18, bold: true, align: 'right', color: pnl >= 0 ? C.green : C.red });
         y += 22;
         const qs = [1, 10, 100, 1000, 10000];
@@ -187,8 +196,19 @@ export const Stonks = {
           t.held -= qSell;
           audio.cash();
         }
-        y += 66;
-        // news tape
+        y += M ? 58 : 66;
+        // news tape (one line on phones)
+        if (M) {
+          g.rect(cx, y, cw, h - y - 6, '#0a0d0e');
+          const n = S.tape[0];
+          const line = S.tip
+            ? `INSIDER TIP: $${S.tip.sym} ${S.tip.k > 0 ? 'UP' : 'DOWN'} ~${Math.round(Math.abs(S.tip.k) * 100)}% in ${Math.ceil(S.newsT)}s`
+            : n
+              ? `${n.k > 0 ? '▲' : '▼'} ${n.text}`
+              : 'NEWS: quiet. for now.';
+          g.text(line, cx + 10, y + (h - y) / 2 + 2, { base: 'middle', size: 14, bold: !!S.tip, color: S.tip ? C.amber : n ? (n.k > 0 ? C.green : C.red) : C.dim, max: cw - 20 });
+          return;
+        }
         g.rect(cx, y, cw, h - y - 12, '#0a0d0e');
         g.text('NEWS', cx + 12, y + 24, { size: 14, bold: true, color: C.dim });
         if (S.tip) g.text(`INSIDER TIP: $${S.tip.sym} ${S.tip.k > 0 ? 'UP' : 'DOWN'} ~${Math.round(Math.abs(S.tip.k) * 100)}% in ${Math.ceil(S.newsT)}s`, cx + cw - 12, y + 24, { size: 15, bold: true, align: 'right', color: C.amber });

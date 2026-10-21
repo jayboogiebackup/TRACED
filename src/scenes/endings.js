@@ -5,6 +5,7 @@ import { dialog, caption, hideCaption, hint, fade } from '../ui/dialog.js';
 import { money, C, HEAD } from '../os/gui.js';
 import { G, GOAL, SECRETS, secret, loadSecrets, milesAway, spend } from '../game/state.js';
 import { info } from '../game/userinfo.js';
+import { device } from '../core/device.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THE MESSAGE. Shown at the end of every ending. Edit freely.
@@ -184,6 +185,7 @@ export function createEndings(engine, getGame) {
       game.lookAt(P.door.pos, { pos: camPos, dur: 1 });
       await wait(1.2);
       audio.doorKick();
+      device.vibrate(500);
       game.cam.shake = 1.2;
       u.uGlitch.value = 0.5;
       // the door swings in; someone is standing in the light

@@ -82,16 +82,20 @@ export const DataMart = {
       g.text(k.state === 'run' ? `${k.time.toFixed(1)}s` : '', w - 24, 30, { size: 26, font: HEAD, align: 'right', color: k.time < 4 ? C.red : C.amber });
       g.progress(24, 42, w - 48, 6, Math.max(0, k.time / k.t.time), k.time < 4 ? C.red : C.green);
       // sequence
-      g.text('SEQUENCE', 24, 82, { size: 14, bold: true, color: C.dim });
+      // phones: sequence on the left, a big grid on the right
+      const M = g.mobile;
+      const sy = M ? 72 : 92, sw = M ? 50 : 60, sp = M ? 56 : 70;
+      g.text('SEQUENCE', 24, sy - 10, { size: 14, bold: true, color: C.dim });
       k.seq.forEach((s, i) => {
-        const x = 24 + i * 70;
-        g.rect(x, 92, 60, 44, i < k.i ? '#163a24' : i === k.i ? '#2a2a12' : '#0c1010');
-        g.stroke(x, 92, 60, 44, i === k.i ? C.amber : C.border, 2);
-        g.text(s, x + 30, 116, { align: 'center', base: 'middle', size: 24, font: HEAD, color: i < k.i ? C.green : C.text });
+        const x = 24 + i * sp;
+        g.rect(x, sy, sw, 44, i < k.i ? '#163a24' : i === k.i ? '#2a2a12' : '#0c1010');
+        g.stroke(x, sy, sw, 44, i === k.i ? C.amber : C.border, 2);
+        g.text(s, x + sw / 2, sy + 24, { align: 'center', base: 'middle', size: 24, font: HEAD, color: i < k.i ? C.green : C.text });
       });
+      if (M) g.para(`tap the codes in order.\nwrong codes cost 2 seconds.`, 24, sy + 82, 380, { size: 15, color: C.dim });
       // grid
-      const n = k.t.grid, cs = Math.min(70, (h - 200) / n);
-      const gx = (w - n * cs) / 2, gy = 160;
+      const n = k.t.grid, cs = M ? Math.min(58, (h - 66) / n) : Math.min(70, (h - 200) / n);
+      const gx = M ? w - n * cs - 20 : (w - n * cs) / 2, gy = M ? 58 : 160;
       if (k.flash > 0) g.rect(gx - 10, gy - 10, n * cs + 20, n * cs + 20, `rgba(255,92,92,${k.flash * 0.3})`);
       k.cells.forEach((c, i) => {
         const x = gx + (i % n) * cs, y = gy + Math.floor(i / n) * cs;
@@ -139,8 +143,8 @@ export const DataMart = {
           return;
         }
         tab = g.tabs('dmtabs', 14, 72, ['HACK', 'SELL RECORDS', 'LISTINGS'], tab);
-        g.push(0, 112);
-        const ch = h - 112;
+        // phones: the tab pages are taller than the screen, so they scroll
+        const tabBody = (ch) => {
         if (tab === 0) {
           g.para('Pick a target. Click the hex codes in the order shown before the timer runs out. Wrong codes cost time. Failing makes noise.', 24, 30, w - 48, { size: 15, color: C.dim });
           TARGETS.forEach((t, i) => {
@@ -224,7 +228,13 @@ export const DataMart = {
             }
           });
         }
-        g.pop();
+        };
+        if (g.mobile) g.scrollArea('dmBody' + tab, 0, 112, w, h - 112, 520, () => tabBody(520));
+        else {
+          g.push(0, 112);
+          tabBody(h - 112);
+          g.pop();
+        }
       },
     };
   },

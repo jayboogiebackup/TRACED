@@ -416,6 +416,10 @@ export function createRigs() {
 
   const api = {
     group,
+    // something is still dropping into place (its shadow needs updating)
+    get busy() {
+      return dropping.length > 0;
+    },
     count: (type) => (placed[type] ? placed[type].length : 0),
     // returns the object, or null if there's no room left to show it
     add(type, animate = true) {

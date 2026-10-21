@@ -23,65 +23,102 @@ function drawDashie(ctx, x, y, r, t, yell) {
     ctx.restore();
     return;
   }
-  // headset band
-  ctx.strokeStyle = '#222';
-  ctx.lineWidth = r * 0.16;
+  const tilt = yell ? Math.sin(t * 18) * 0.06 : Math.sin(t * 1.3) * 0.03;
+  ctx.rotate(tilt);
+  // badge behind the head
+  ctx.fillStyle = '#2a1a3a';
   ctx.beginPath();
-  ctx.arc(0, -r * 0.05, r * 1.02, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.arc(0, 0, r * 1.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#b48cff';
+  ctx.lineWidth = r * 0.05;
   ctx.stroke();
   // face
-  ctx.fillStyle = '#8a5a3c';
+  ctx.fillStyle = '#9a6a48';
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.ellipse(0, r * 0.05, r * 0.82, r * 0.9, 0, 0, Math.PI * 2);
   ctx.fill();
   // hair
-  ctx.fillStyle = '#1a1210';
+  ctx.fillStyle = '#16100d';
   ctx.beginPath();
-  ctx.arc(0, -r * 0.1, r * 1.0, Math.PI * 1.1, Math.PI * 1.9);
-  ctx.lineTo(r * 0.7, -r * 0.55);
-  ctx.quadraticCurveTo(0, -r * 0.75, -r * 0.7, -r * 0.55);
+  ctx.ellipse(0, -r * 0.42, r * 0.84, r * 0.5, 0, Math.PI, 0);
+  ctx.quadraticCurveTo(r * 0.3, -r * 0.3, 0, -r * 0.4);
+  ctx.quadraticCurveTo(-r * 0.3, -r * 0.3, -r * 0.84, -r * 0.42);
   ctx.fill();
-  // ear cups
-  ctx.fillStyle = '#b48cff';
-  ctx.fillRect(-r * 1.12, -r * 0.25, r * 0.26, r * 0.5);
-  ctx.fillRect(r * 0.86, -r * 0.25, r * 0.26, r * 0.5);
-  // eyes (excited)
-  ctx.fillStyle = '#fff';
-  for (const ex of [-0.36, 0.36]) {
-    ctx.beginPath();
-    ctx.ellipse(ex * r, -r * 0.12, r * 0.17, r * (yell ? 0.22 : 0.17), 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = '#111';
-  for (const ex of [-0.36, 0.36]) {
-    ctx.beginPath();
-    ctx.arc(ex * r, -r * 0.1, r * 0.08, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // brows
-  ctx.strokeStyle = '#1a1210';
-  ctx.lineWidth = r * 0.07;
+  // headphones: band + round cups + mic boom
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = r * 0.13;
   ctx.beginPath();
-  ctx.moveTo(-r * 0.55, -r * 0.42 - (yell ? r * 0.1 : 0));
-  ctx.lineTo(-r * 0.2, -r * 0.36 - (yell ? r * 0.12 : 0));
-  ctx.moveTo(r * 0.55, -r * 0.42 - (yell ? r * 0.1 : 0));
-  ctx.lineTo(r * 0.2, -r * 0.36 - (yell ? r * 0.12 : 0));
+  ctx.arc(0, -r * 0.02, r * 0.93, Math.PI * 1.08, Math.PI * 1.92);
   ctx.stroke();
-  // beard
-  ctx.fillStyle = 'rgba(26,18,16,0.85)';
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.ellipse(s * r * 0.86, r * 0.02, r * 0.2, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b48cff';
+    ctx.beginPath();
+    ctx.ellipse(s * r * 0.9, r * 0.02, r * 0.1, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = r * 0.06;
   ctx.beginPath();
-  ctx.arc(0, r * 0.2, r * 0.82, Math.PI * 0.08, Math.PI * 0.92);
-  ctx.quadraticCurveTo(0, r * 0.3, r * 0.81, r * 0.31);
+  ctx.moveTo(-r * 0.86, r * 0.2);
+  ctx.quadraticCurveTo(-r * 0.75, r * 0.62, -r * 0.3, r * 0.62);
+  ctx.stroke();
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(-r * 0.28, r * 0.62, r * 0.07, 0, Math.PI * 2);
   ctx.fill();
-  // huge grin / yelling mouth
+  // eyes, wide when he yells
+  const eh = yell ? 0.2 : 0.14;
+  for (const ex of [-0.32, 0.32]) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(ex * r, -r * 0.08, r * 0.15, r * eh, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1010';
+    ctx.beginPath();
+    ctx.arc(ex * r, -r * 0.06, r * 0.075, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ex * r + r * 0.03, -r * 0.09, r * 0.025, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // brows jump up when he yells
+  ctx.strokeStyle = '#16100d';
+  ctx.lineWidth = r * 0.07;
+  ctx.lineCap = 'round';
+  const by = yell ? -r * 0.4 : -r * 0.3;
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.47, by + r * 0.03);
+  ctx.quadraticCurveTo(-r * 0.32, by - r * 0.05, -r * 0.18, by + r * 0.02);
+  ctx.moveTo(r * 0.47, by + r * 0.03);
+  ctx.quadraticCurveTo(r * 0.32, by - r * 0.05, r * 0.18, by + r * 0.02);
+  ctx.stroke();
+  // short beard
+  ctx.fillStyle = 'rgba(22,16,13,0.8)';
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.42, r * 0.58, r * 0.46, 0, 0.1, Math.PI - 0.1);
+  ctx.quadraticCurveTo(0, r * 0.62, r * 0.57, r * 0.47);
+  ctx.fill();
+  // mouth: big grin, or a full WHAAAT'S UP
+  const open = yell ? 0.26 + Math.abs(Math.sin(t * 20)) * 0.08 : 0.1;
   ctx.fillStyle = '#3a0d0d';
   ctx.beginPath();
-  const open = yell ? 0.42 + Math.sin(t * 24) * 0.08 : 0.2;
-  ctx.ellipse(0, r * 0.38, r * 0.42, r * open, 0, 0, Math.PI);
-  ctx.closePath();
+  ctx.ellipse(0, r * 0.36, r * 0.3, r * open, 0, 0, Math.PI);
+  ctx.lineTo(-r * 0.3, r * 0.36);
   ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(-r * 0.36, r * 0.38, r * 0.72, r * 0.09);
+  ctx.fillStyle = '#f2ede4';
+  ctx.fillRect(-r * 0.24, r * 0.36, r * 0.48, r * 0.06);
+  if (yell) {
+    ctx.fillStyle = '#c4505a';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.36 + r * open * 0.7, r * 0.15, r * open * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -187,9 +224,10 @@ function makeHeli() {
     ctx.fillRect(-blade, -16, blade * 2, 3);
     ctx.fillRect(-2, -14, 4, 6);
     ctx.restore();
+    g.rect(0, 0, gw, 38, 'rgba(0,0,0,0.6)');
     g.text(`DISTANCE ${S.score()}`, 14, 28, { size: 22, font: HEAD, color: '#cfe8c0' });
     g.text(`BEST ${S.best}`, gw - 14, 28, { size: 22, font: HEAD, color: '#cfe8c0', align: 'right' });
-    if (S.state === 'ready') g.text('HOLD MOUSE BUTTON TO FLY', gw / 2, gh / 2, { align: 'center', base: 'middle', size: 34, font: HEAD, color: '#fff' });
+    if (S.state === 'ready') g.text(g.touch ? 'HOLD YOUR FINGER DOWN TO FLY' : 'HOLD MOUSE BUTTON TO FLY', gw / 2, gh / 2, { align: 'center', base: 'middle', size: 34, font: HEAD, color: '#fff' });
   };
   return S;
 }
@@ -347,14 +385,15 @@ export const Arcade = {
         g.rect(0, 0, w, 60, '#1a1024');
         g.text('FLASHBANG', 20, 44, { size: 46, font: HEAD, color: C.purple });
         g.text('.swf', 196, 44, { size: 26, font: HEAD, color: C.dim });
-        g.text('the internet\'s #1 source of free games since 2003', 250, 40, { size: 15, color: C.dim });
+        if (page === 'home' || !g.mobile) g.text('the internet\'s #1 source of free games since 2003', 250, 40, { size: 15, color: C.dim, max: w - 400 });
         if (page !== 'home' && g.button('back', w - 140, 12, 120, 36, '← games')) {
           page = 'home';
           heli.state = heli.state === 'fly' ? 'dead' : heli.state;
         }
         g.push(0, 60);
         const ch = h - 60;
-        if (page === 'home') {
+        // the home page is taller than a phone screen, so there it scrolls
+        const home = (ch) => {
           const gw = w - 300;
           const games = [
             ['HELI.swf', 'hold to fly. don\'t touch the walls. $5 per point. beat 1000 for a $10,000 prize.', 'heli'],
@@ -394,7 +433,7 @@ export const Arcade = {
           drawDashie(g.ctx, sx + sw / 2, 150, over ? 72 : 66, g.t, yell > 0);
           if (g.hit('dashie', sx + sw / 2 - 80, 60, 160, 170)) dashie();
           g.text('DASHIE', sx + sw / 2, 258, { align: 'center', size: 34, font: HEAD, color: C.text });
-          g.text(yell > 0 ? 'WHAAAAAT\'S UP' : 'click to say hi', sx + sw / 2, 290, { align: 'center', size: 15, color: yell > 0 ? C.amber : C.faint });
+          g.text(yell > 0 ? 'WHAAAAAT\'S UP' : g.touch ? 'tap to say hi' : 'click to say hi', sx + sw / 2, 290, { align: 'center', size: 15, color: yell > 0 ? C.amber : C.faint });
           g.rect(sx, 336, sw, ch - 356, '#120d18');
           g.stroke(sx, 336, sw, ch - 356, '#3a2a4a');
           g.text('HELI.swf HIGH SCORES', sx + sw / 2, 364, { align: 'center', size: 16, bold: true, color: C.purple });
@@ -403,6 +442,10 @@ export const Arcade = {
             g.text(`${i + 1}. ${n}`, sx + 16, yy, { size: 16, bold: n === 'you', color: n === 'you' ? C.green : n === 'dashiexp' ? C.amber : C.text, max: sw - 90 });
             g.text(String(s), sx + sw - 16, yy, { size: 16, align: 'right', color: C.dim });
           });
+        };
+        if (page === 'home') {
+          if (g.mobile) g.scrollArea('arcadeHome', 0, 0, w, ch, 600, () => home(600));
+          else home(ch);
         } else if (page === 'heli') {
           const gw = w - 40, gh = ch - 90;
           const hold = (g.down && g.inputOK && g.over(20, 10, gw, gh)) || g.keys.some((k) => k.key === ' ');
@@ -439,7 +482,7 @@ export const Arcade = {
               heli.paid = false;
             }
           }
-          g.text('hold the mouse button (or space) to climb', 24, ch - 46, { size: 15, color: C.dim });
+          g.text(g.touch ? 'hold your finger on the screen to climb' : 'hold the mouse button (or space) to climb', 24, ch - 46, { size: 15, color: C.dim });
           g.text(`dashiexp: ${DASHIE_SCORE}`, w - 24, ch - 46, { size: 15, color: C.amber, align: 'right' });
         } else if (page === 'whack') {
           g.push(20, 10);

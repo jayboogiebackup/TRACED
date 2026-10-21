@@ -4,6 +4,10 @@ import { wait } from './core/engine.js';
 import { dialog, caption, hideCaption, hint, fade } from './ui/dialog.js';
 import { info, refreshTime } from './game/userinfo.js';
 import { G, on } from './game/state.js';
+import { device } from './core/device.js';
+
+// your own phone buzzes along with the one on screen (Android)
+const RING_BUZZ = [380, 120, 380, 120, 380, 120, 380];
 
 const promptEl = document.querySelector('#prompt');
 
@@ -34,8 +38,10 @@ export async function ringingPhone(engine, intro) {
   canvas.addEventListener('pointerdown', onDown);
   const stopFollow = engine.onUpdate(() => {
     const p = intro.screenPos(new THREE.Vector3(0.17, -0.02, 0.12));
-    promptEl.style.left = p.x + 'px';
-    promptEl.style.top = p.y + 'px';
+    // keep it on screen on narrow phones
+    const half = promptEl.offsetWidth * 0.5 + 12;
+    promptEl.style.left = Math.min(Math.max(p.x, half), innerWidth - half) + 'px';
+    promptEl.style.top = Math.min(p.y, innerHeight - 60) + 'px';
   });
 
   const words = ['PICK UP', 'PICK UP.', 'PICK. UP.'];
@@ -44,6 +50,7 @@ export async function ringingPhone(engine, intro) {
     const loop = audio.startRinging(0.5 + cycle * 0.15);
     loop.onRing = () => {
       phone.ring();
+      device.vibrate(RING_BUZZ);
       totalRings++;
       intro.shake = 0.04;
       if (totalRings === 2 || cycle > 0) {
@@ -140,7 +147,7 @@ export async function theCall(engine, intro) {
 }
 
 // ───────────────────────── 3. the basement ─────────────────────────
-export async function toBasement(engine, game, intro) {
+export async function toBasement(engine, game, intro, o = {}) {
   const u = engine.u;
   audio.glitch(1.3, 0.3);
   audio.tapeStop(1.6);
@@ -148,6 +155,20 @@ export async function toBasement(engine, game, intro) {
   await engine.animate(0.4, (p) => (u.uFade.value = p));
   audio.stopDrone(0.5);
   hideCaption();
+
+  // title drop, in the dark, with the sirens fading somewhere outside
+  if (o.title) {
+    const el = document.querySelector('#title');
+    el.classList.remove('hidden');
+    await wait(0.6);
+    audio.impact(0.5);
+    audio.stinger(0.1);
+    el.classList.add('show');
+    await wait(3.4);
+    el.classList.remove('show');
+    await wait(1.3);
+    el.classList.add('hidden');
+  }
 
   const { laptop, room: P } = game;
   laptop.setLid(laptop.CLOSED);
@@ -179,10 +200,11 @@ export async function toBasement(engine, game, intro) {
     await wait(0.05 + Math.random() * 0.15);
   }
   b.on = 0;
-  b.light.intensity = 0;
+  game.bulbToCallLight();
   b.mat.color.setScalar(0.05);
   audio.setBuzz(0);
   audio.impact(0.35);
+  device.vibrate(90);
   audio.noise(audio.now, 0.4, { gain: 0.25, filter: { type: 'highpass', freq: 4000 } });
   audio.stinger(0.12);
   game.cam.shake = 0.3;
@@ -199,6 +221,7 @@ export async function toBasement(engine, game, intro) {
   await engine.animate(0.8, (p) => (laptop.power = p));
   game.lookBack();
   await new Promise((r) => {
+    if (game.os.booted) return r();
     const off = on('booted', () => {
       off();
       r();
@@ -211,6 +234,10 @@ export async function toBasement(engine, game, intro) {
   os.open('miner', { x: 352, y: 96 });
   game.mode = 'play';
   G.running = true;
-  hint('scroll off-screen or TAB — lean back   ·   hold right-click — look around   ·   esc — pause');
+  hint(
+    device.touch
+      ? 'tap the laptop to use it   ·   ⤢ lean back   ·   ◎ look around   ·   ❚❚ pause'
+      : 'scroll off-screen or TAB — lean back   ·   hold right-click — look around   ·   esc — pause',
+  );
   setTimeout(() => hint(''), 26000);
 }

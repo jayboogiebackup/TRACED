@@ -47,7 +47,10 @@ export async function gatherInfo() {
     /* ignore */
   }
   info.lang = navigator.language || '';
-  info.screen = `${screen.width}×${screen.height}`;
+  // some embedded browsers report 0×0; fall back to the window in device pixels
+  const dpr = window.devicePixelRatio || 1;
+  const sw = screen.width || Math.round(innerWidth * dpr), sh = screen.height || Math.round(innerHeight * dpr);
+  info.screen = `${sw}×${sh}`;
   info.cores = navigator.hardwareConcurrency || 0;
   info.memory = navigator.deviceMemory || 0;
   info.dnt = navigator.doNotTrack === '1' || window.doNotTrack === '1';

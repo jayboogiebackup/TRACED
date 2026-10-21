@@ -84,20 +84,47 @@ export const Casino = {
       });
     }
 
-    function betPicker(g, x, y, w) {
+    const PANEL_W = 300; // phone layout: bet controls live in a column on the right
+    const gameW = (g, w) => (g.mobile ? w - PANEL_W : w);
+
+    // bet chips + the big action button. action: {id, label, kind, fn, disabled}
+    function controls(g, w, h, action) {
+      const busy = spinning || crash.state === 'flying' || coin.state === 'flipping';
+      const chip = (id, x, y, bw, label, fn, kind) => {
+        if (g.button(id, x, y, bw, 36, label, { disabled: busy, kind })) fn();
+      };
+      const pick = (c) => () => (bet = c);
+      const x2 = () => (bet = Math.max(1, bet * 2));
+      const half = () => (bet = Math.max(1, Math.floor(bet / 2)));
+      const all = () => (bet = Math.max(1, Math.floor(Math.min(G.money, limit()))));
+      if (g.mobile) {
+        const x = w - PANEL_W + 6, pw = PANEL_W - 18;
+        g.rect(x - 6, 0, PANEL_W, h, '#120b0c');
+        g.line(x - 6, 0, x - 6, h, '#3a2020');
+        g.text('BET', x + 4, 30, { size: 26, font: HEAD, color: C.dim });
+        g.text(money(bet), x + pw, 31, { size: 24, bold: true, align: 'right', color: bet > G.money ? C.red : C.text });
+        const cw = (pw - 12) / 3;
+        [10, 100, 1000, 10000, 100000].forEach((c, i) => chip('chip' + c, x + (i % 3) * (cw + 6), 46 + Math.floor(i / 3) * 42, cw, short(c), pick(c), bet === c ? 'gold' : undefined));
+        chip('chipx2', x + 2 * (cw + 6), 88, cw, '×2', x2);
+        chip('chiphalf', x, 130, cw, '÷2', half);
+        chip('chipall', x + cw + 6, 130, cw * 2 + 6, 'ALL IN', all, 'danger');
+        if (!G.flags.faceVerified) g.text(`max ${money(UNVERIFIED_LIMIT)} (unverified)`, x + 4, 190, { size: 13, color: C.faint, max: pw });
+        if (g.button(action.id, x, h - 88, pw, 76, action.label, { kind: action.kind, size: 26, disabled: action.disabled })) action.fn();
+        return;
+      }
+      const y = h - 150, x = 30;
       g.text('BET', x, y + 24, { size: 26, font: HEAD, color: C.dim });
       g.text(money(bet), x + 56, y + 25, { size: 24, bold: true, color: bet > G.money ? C.red : C.text });
-      const chips = [10, 100, 1000, 10000, 100000];
       let cx = x;
-      const busy = spinning || crash.state === 'flying' || coin.state === 'flipping';
-      for (const c of chips) {
-        if (g.button('chip' + c, cx, y + 40, 84, 36, short(c), { disabled: busy, kind: bet === c ? 'gold' : undefined })) bet = c;
-        cx += 90;
+      for (const c of [10, 100, 1000, 10000, 100000]) {
+        chip('chip' + c, cx, y + 40, 70, short(c), pick(c), bet === c ? 'gold' : undefined);
+        cx += 76;
       }
-      if (g.button('chipx2', cx, y + 40, 60, 36, '×2', { disabled: busy })) bet = Math.max(1, bet * 2);
-      if (g.button('chiphalf', cx + 66, y + 40, 60, 36, '½', { disabled: busy })) bet = Math.max(1, Math.floor(bet / 2));
-      if (g.button('chipall', cx + 132, y + 40, 110, 36, 'ALL IN', { disabled: busy, kind: 'danger' })) bet = Math.max(1, Math.floor(Math.min(G.money, limit())));
+      chip('chipx2', cx, y + 40, 56, '×2', x2);
+      chip('chiphalf', cx + 62, y + 40, 56, '÷2', half);
+      chip('chipall', cx + 124, y + 40, 100, 'ALL IN', all, 'danger');
       if (!G.flags.faceVerified) g.text(`max bet ${money(UNVERIFIED_LIMIT)} (unverified)`, x, y + 100, { size: 14, color: C.faint });
+      if (g.button(action.id, w - 250, y, 220, 76, action.label, { kind: action.kind, size: 26, disabled: action.disabled })) action.fn();
     }
 
     // ── slots
@@ -171,15 +198,16 @@ export const Casino = {
           settleSlots();
         }
       }
-      const rw = 170, rh = 250, gap = 24;
-      const x0 = (w - (rw * 3 + gap * 2)) / 2, y0 = 26;
+      const M = g.mobile, gw = gameW(g, w);
+      const rw = M ? 130 : 170, rh = M ? 200 : 250, gap = M ? 12 : 24;
+      const x0 = (gw - (rw * 3 + gap * 2)) / 2, y0 = M ? 22 : 26;
       g.rect(x0 - 20, y0 - 20, rw * 3 + gap * 2 + 40, rh + 40, '#1c0f10');
       g.stroke(x0 - 20, y0 - 20, rw * 3 + gap * 2 + 40, rh + 40, '#6b2a2a', 3);
       reels.forEach((r, i) => {
         const x = x0 + i * (rw + gap);
         g.rect(x, y0, rw, rh, '#0b0b0b');
         g.clip(x, y0, rw, rh);
-        const symH = 100;
+        const symH = M ? 84 : 100;
         const base = r.pos;
         for (let k = -2; k <= 2; k++) {
           const idx = Math.floor(base) + k;
@@ -188,17 +216,19 @@ export const Casino = {
           const yy = y0 + rh / 2 + (k - frac) * symH;
           const blur = !r.stopped;
           g.ctx.globalAlpha = blur ? 0.55 : 1;
-          g.text(sym, x + rw / 2, yy, { align: 'center', base: 'middle', size: 78, bold: true, font: 'Arial', color: SYM_COL[sym] });
+          g.text(sym, x + rw / 2, yy, { align: 'center', base: 'middle', size: M ? 64 : 78, bold: true, font: 'Arial', color: SYM_COL[sym] });
           g.ctx.globalAlpha = 1;
         }
         g.unclip();
         g.stroke(x, y0, rw, rh, '#3b2020', 2);
       });
       g.line(x0 - 20, y0 + rh / 2, x0 + rw * 3 + gap * 2 + 20, y0 + rh / 2, 'rgba(255,92,92,0.5)', 2);
-      g.text(slotMsg, w / 2, y0 + rh + 46, { align: 'center', size: 26, font: HEAD, color: slotWin ? C.amber : C.dim });
-      betPicker(g, 30, h - 150, w);
-      if (g.button('spin', w - 250, h - 150, 220, 76, spinning ? '...' : 'SPIN', { kind: 'danger', size: 26, disabled: spinning })) startSpin();
-      g.text('3×7 ×30   3×₿ ×15   3×$ ×10   3×◆ ×6   3×♥ ×4   pair ×1.8   ☠☠☠ lose double', w / 2, h - 18, { align: 'center', size: 13, color: C.faint });
+      g.text(slotMsg, gw / 2, y0 + rh + (M ? 40 : 46), { align: 'center', size: 26, font: HEAD, color: slotWin ? C.amber : C.dim, max: gw - 20 });
+      controls(g, w, h, { id: 'spin', label: spinning ? '...' : 'SPIN', kind: 'danger', fn: startSpin, disabled: spinning });
+      if (M) {
+        g.text('3×7 ×30 · 3×₿ ×15 · 3×$ ×10 · 3×◆ ×6', gw / 2, h - 30, { align: 'center', size: 12, color: C.dim });
+        g.text('3×♥ ×4 · pair ×1.8 · ☠☠☠ lose double', gw / 2, h - 12, { align: 'center', size: 12, color: C.dim });
+      } else g.text('3×7 ×30   3×₿ ×15   3×$ ×10   3×◆ ×6   3×♥ ×4   pair ×1.8   ☠☠☠ lose double', w / 2, h - 18, { align: 'center', size: 13, color: C.faint });
     }
 
     // ── crash
@@ -218,7 +248,8 @@ export const Casino = {
       audio.win(crash.m > 5 ? 2 : 1);
     }
     function drawCrash(g, w, h, dt) {
-      const gx = 30, gy = 20, gw = w - 60, gh = 330 - 40;
+      const M = g.mobile;
+      const gx = M ? 12 : 30, gy = M ? 12 : 20, gw = M ? gameW(g, w) - 24 : w - 60, gh = M ? h - 24 : 330 - 40;
       g.rect(gx, gy, gw, gh, '#070a0b');
       g.stroke(gx, gy, gw, gh, C.border);
       if (crash.state === 'flying') {
@@ -254,13 +285,11 @@ export const Casino = {
         g.text(crash.state === 'crashed' ? '💥' : '🚀', lx, ly, { align: 'center', base: 'middle', size: 34, font: 'Arial' });
       }
       const col = crash.state === 'crashed' ? C.red : crash.state === 'cashed' ? C.amber : C.green;
-      g.text(`${crash.m.toFixed(2)}×`, gx + gw / 2, gy + gh / 2, { align: 'center', base: 'middle', size: 96, font: HEAD, color: col });
-      g.text(crash.msg || 'it only goes up. until it doesn\'t.', gx + gw / 2, gy + gh / 2 + 66, { align: 'center', size: 22, font: HEAD, color: C.dim });
+      g.text(`${crash.m.toFixed(2)}×`, gx + gw / 2, gy + gh / 2, { align: 'center', base: 'middle', size: M ? 80 : 96, font: HEAD, color: col });
+      g.text(crash.msg || 'it only goes up. until it doesn\'t.', gx + gw / 2, gy + gh / 2 + 60, { align: 'center', size: 22, font: HEAD, color: C.dim, max: gw - 20 });
       if (crash.state === 'flying') g.text(`stake ${money(crash.stake)}  →  ${money(crash.stake * crash.m)}`, gx + 16, gy + 28, { size: 16, color: C.text });
-      betPicker(g, 30, h - 150, w);
-      if (crash.state === 'flying') {
-        if (g.button('cashout', w - 250, h - 150, 220, 76, 'CASH OUT', { kind: 'gold', size: 26 })) cashOut();
-      } else if (g.button('launch', w - 250, h - 150, 220, 76, 'LAUNCH', { kind: 'primary', size: 26 })) startCrash();
+      if (crash.state === 'flying') controls(g, w, h, { id: 'cashout', label: 'CASH OUT', kind: 'gold', fn: cashOut });
+      else controls(g, w, h, { id: 'launch', label: 'LAUNCH', kind: 'primary', fn: startCrash });
     }
 
     // ── coin
@@ -270,7 +299,8 @@ export const Casino = {
       audio.blip(1200, 0.05, 0.06);
     }
     function drawCoin(g, w, h, dt) {
-      const cx = w / 2, cy = 150;
+      const M = g.mobile;
+      const cx = gameW(g, w) / 2, cy = M ? 124 : 150;
       let sx = 1, face = coin.side || 0;
       if (coin.state === 'flipping') {
         coin.t += dt;
@@ -293,43 +323,47 @@ export const Casino = {
           }
         }
       }
-      const R = 100;
+      const R = M ? 86 : 100;
       g.ctx.save();
       g.ctx.translate(cx, cy);
       g.ctx.scale(Math.max(0.04, Math.abs(sx)), 1);
       g.circle(0, 0, R + 8, '#5a4510');
       g.circle(0, 0, R, face ? '#3a3a3a' : '#b8902a', face ? '#777' : '#ffd56e', 6);
-      g.text(face ? '☠' : '₿', 0, 6, { align: 'center', base: 'middle', size: 130, bold: true, font: 'Arial', color: face ? '#ddd' : '#fff1c2' });
+      g.text(face ? '☠' : '₿', 0, 6, { align: 'center', base: 'middle', size: R * 1.3, bold: true, font: 'Arial', color: face ? '#ddd' : '#fff1c2' });
       g.ctx.restore();
-      g.text(coin.msg || 'heads you win. skulls you don\'t.', cx, cy + R + 52, { align: 'center', size: 26, font: HEAD, color: coin.state === 'done' ? (coin.win ? C.amber : C.red) : C.dim });
-      betPicker(g, 30, h - 150, w);
-      if (g.button('flip', w - 250, h - 150, 220, 76, 'FLIP', { kind: 'gold', size: 26, disabled: coin.state === 'flipping' })) flip();
+      g.text(coin.msg || 'heads you win. skulls you don\'t.', cx, cy + R + (M ? 44 : 52), { align: 'center', size: 26, font: HEAD, color: coin.state === 'done' ? (coin.win ? C.amber : C.red) : C.dim, max: cx * 2 - 20 });
+      controls(g, w, h, { id: 'flip', label: 'FLIP', kind: 'gold', fn: flip, disabled: coin.state === 'flipping' });
     }
 
     return {
       draw(g, w, h, dt) {
         // header w/ the google trap
-        g.rect(0, 0, w, 64, '#1a0c0d');
-        g.text('LUCKY☠STRIKE', 20, 46, { size: 46, font: HEAD, color: C.red });
-        g.text(money(G.money), w - 20, 42, { size: 22, bold: true, align: 'right', color: C.green });
+        const M = g.mobile;
+        const headH = M ? 52 : 64;
+        g.rect(0, 0, w, headH, '#1a0c0d');
+        g.text('LUCKY☠STRIKE', 16, M ? 38 : 46, { size: M ? 38 : 46, font: HEAD, color: C.red });
+        if (!M) g.text(money(G.money), w - 20, 42, { size: 22, bold: true, align: 'right', color: C.green });
         if (!G.flags.google) {
           const pulse = 0.6 + 0.4 * Math.sin(g.t * 4);
-          if (g.button('gsign', 300, 14, 300, 38, '', {
+          if (g.button('gsign', M ? 250 : 306, M ? 8 : 14, 344, 38, '', {
             bg: '#f1f1f1',
             border: '#ccc',
             draw: (x, y, bw, bh) => {
               g.circle(x + 22, y + bh / 2, 11, null, '#4285f4', 4);
-              g.text('Sign in with Google  +$500', x + 42, y + bh / 2 + 1, { base: 'middle', size: 15, bold: true, color: '#222' });
+              const tw = g.text('Sign in with Google', x + 42, y + bh / 2 + 1, { base: 'middle', size: 15, bold: true, color: '#222' });
+              g.text('+$500', x + 52 + tw, y + bh / 2 + 1, { base: 'middle', size: 15, bold: true, color: '#1a7a3a' });
               g.ctx.globalAlpha = pulse;
-              g.text('FREE', x + bw - 10, y + bh / 2 + 1, { base: 'middle', align: 'right', size: 13, bold: true, color: '#d33' });
+              g.rrect(x + bw - 58, y + 9, 48, bh - 18, 4, '#d33');
+              g.text('FREE', x + bw - 34, y + bh / 2 + 1, { base: 'middle', align: 'center', size: 12, bold: true, color: '#fff' });
               g.ctx.globalAlpha = 1;
             },
           }))
             googleOffer();
         }
-        tab = g.tabs('ctabs', 14, 72, ['SLOTS', 'CRASH', 'DOUBLE OR NOTHING'], tab, { accent: C.red });
-        g.push(0, 112);
-        const ch = h - 112;
+        tab = g.tabs('ctabs', 14, headH + 6, ['SLOTS', 'CRASH', 'DOUBLE OR NOTHING'], tab, { accent: C.red });
+        const top = headH + 44;
+        g.push(0, top);
+        const ch = h - top;
         if (tab === 0) drawSlots(g, w, ch, dt);
         else if (tab === 1) drawCrash(g, w, ch, dt);
         else drawCoin(g, w, ch, dt);

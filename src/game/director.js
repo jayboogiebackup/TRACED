@@ -6,6 +6,7 @@ import { C, FONT, HEAD, money } from '../os/gui.js';
 import { G, GOAL, on, emit, addMoney, addHeat, spend, secret, scannerLog, mining, heatRate } from './state.js';
 import { info } from './userinfo.js';
 import { DESK_Y } from '../world/basement.js';
+import { device } from '../core/device.js';
 
 const pick = (a) => a[(Math.random() * a.length) | 0];
 
@@ -208,6 +209,7 @@ export function createDirector(engine, game, endings) {
     block(async () => {
       const first = G.stats.organs === 0 && it.id !== 'blood';
       audio.squelch();
+      device.vibrate([60, 40, 140]);
       await engine.animate(0.5, (p) => (u.uFade.value = p));
       audio.startHeart(it.id === 'heart' ? 50 : 112, 0.6);
       if (it.id !== 'blood')
@@ -388,7 +390,10 @@ export function createDirector(engine, game, endings) {
   function ringPhone(seconds = 22) {
     return new Promise((resolve) => {
       const loop = audio.startRinging(0.45);
-      loop.onRing = () => phone.ring();
+      loop.onRing = () => {
+        phone.ring();
+        device.vibrate([380, 120, 380, 120, 380, 120, 380]);
+      };
       caption('the phone is ringing. (click it)', seconds);
       phone.setGlow(0.6);
       // lean back from the screen so the phone is in view
@@ -444,10 +449,12 @@ export function createDirector(engine, game, endings) {
       let number = '';
       let done = null;
       const finished = new Promise((r) => (done = r));
-      dialog.show('ROTARY PHONE', 'type a number on your keyboard.\nenter to call · esc to hang up\n\n_');
+      const how = device.touch ? 'dial on the keypad.' : 'type a number on your keyboard.\nenter to call · esc to hang up';
+      dialog.show('ROTARY PHONE', `${how}\n\n_`);
+      emit('dialpad', true);
       const prevMode = game.mode;
       game.mode = 'play-dial';
-      const show = () => dialog.set(`type a number on your keyboard.\nenter to call · esc to hang up\n\n${number.split('').join(' ') || '_'}`);
+      const show = () => dialog.set(`${how}\n\n${number.split('').join(' ') || '_'}`);
       // digits queue up; the wheel has to come home before the next one
       const queue = [];
       let dialing = false, pendingCall = false;
@@ -481,6 +488,7 @@ export function createDirector(engine, game, endings) {
       window.addEventListener('keydown', onKey);
       const n = await finished;
       window.removeEventListener('keydown', onKey);
+      emit('dialpad', false);
       game.mode = prevMode;
       dialog.hide();
       if (n) await placeCall(n);
@@ -623,6 +631,7 @@ export function createDirector(engine, game, endings) {
           game.lookAt(new THREE.Vector3(-0.6, 2.3, -0.4), { dur: 1.4 });
           await wait(3.4);
           audio.knock(4, true);
+          device.vibrate([90, 330, 90, 330, 90, 330, 90]);
           game.fx.glitch = 0.4;
           await dialog.say('UPSTAIRS', '*POLICE.* OPEN THE DOOR.', { danger: true, auto: 2.4 });
           game.lookAt(P.door.pos, { pos: P.door.camPos, dur: 1.2 });
@@ -676,16 +685,19 @@ export function createDirector(engine, game, endings) {
     });
   }
   function policeLights(seconds) {
-    const { red, blue } = P.police;
+    const { siren } = P.police;
     const start = engine.time;
     engine.u.uSat.value = 0.55;
     const off = engine.onUpdate(() => {
       const t = engine.time - start;
-      const k = Math.min(1, t, seconds - t);
-      red.intensity = (Math.sin(t * 9) > 0 ? 9 : 0) * Math.max(0, k);
-      blue.intensity = (Math.sin(t * 9) <= 0 ? 9 : 0) * Math.max(0, k);
+      const k = Math.max(0, Math.min(1, t, seconds - t));
+      const redPhase = Math.sin(t * 9) > 0;
+      siren.color.setHex(redPhase ? 0xff2020 : 0x2050ff);
+      siren.intensity = 9 * k;
+      // the beam swings a little between flashes, like a light bar out on the street
+      siren.target.position.set(redPhase ? 0.2 : -0.6, redPhase ? 0.6 : 0.8, redPhase ? 0.5 : 0.2);
       if (t > seconds) {
-        red.intensity = blue.intensity = 0;
+        siren.intensity = 0;
         engine.u.uSat.value = 0.22;
         off();
       }

@@ -70,6 +70,17 @@ export class GUI {
     this.scrolls = {};
     this.t = 0;
     this.consumed = false;
+    // touch: drag-to-scroll, and taps don't fire if you were scrolling
+    this.touch = false;
+    this.mobile = false;
+    this.pressX = 0;
+    this.pressY = 0;
+    this.dragged = false;
+    this.lastMy = 0;
+    this.dy = 0;
+    this.dragScrollId = null;
+    this.scrollCandidates = [];
+    this.kbd = null; // on-screen keyboard bridge (set by the host on touch devices)
   }
 
   // ── host input
@@ -80,6 +91,11 @@ export class GUI {
   press() {
     this.down = true;
     this.pressed = true;
+    this.pressX = this.mx;
+    this.pressY = this.my;
+    this.lastMy = this.my;
+    this.dragged = false;
+    this.dragScrollId = null;
   }
   release() {
     this.down = false;
@@ -100,10 +116,20 @@ export class GUI {
     this.cursor = 'arrow';
     this.ox = this.oy = 0;
     this.consumed = false;
+    this.dy = this.down ? this.my - this.lastMy : 0;
+    this.lastMy = this.my;
+    if (this.down && Math.hypot(this.mx - this.pressX, this.my - this.pressY) > (this.touch ? 10 : 6)) this.dragged = true;
+    this.scrollCandidates.length = 0;
   }
   end() {
-    if (this.hot && this.hot !== this.hotPrev && !this.down) audio.hover();
+    if (this.hot && this.hot !== this.hotPrev && !this.down && !this.touch) audio.hover();
     if (this.pressed && !this.consumed && this.focus) this.focus = null;
+    // the innermost scroll area under the finger takes the drag
+    if (this.dragged && this.down && !this.dragScrollId && this.scrollCandidates.length) {
+      this.scrollCandidates.sort((a, b) => a.area - b.area);
+      this.dragScrollId = this.scrollCandidates[0].id;
+    }
+    if (this.kbd && !this.focus && this.kbd.id) this.kbd.unbind();
     this.pressed = this.released = false;
     this.wheel = 0;
     this.keys = [];
@@ -176,7 +202,7 @@ export class GUI {
         }
       }
     }
-    if (!o.onPress && this.released && this.active === id && over && !o.disabled) {
+    if (!o.onPress && this.released && this.active === id && over && !o.disabled && !this.dragged) {
       if (!o.silent) audio.click();
       return true;
     }
@@ -348,7 +374,18 @@ export class GUI {
     if (this.hit(id, x, y, w, h, { onPress: true })) this.focus = id;
     if (this.over(x, y, w, h)) this.cursor = 'text';
     let submit = false;
-    if (focused) {
+    if (focused && this.kbd) {
+      // touch: the phone's own keyboard types into a hidden field; mirror it here
+      const k = this.kbd;
+      if (k.id !== id) k.bind(id, value, o.max || 200);
+      else if (value !== k.lastOut) k.set(value);
+      value = k.value.slice(0, o.max || 200);
+      k.lastOut = value;
+      if (k.submitted) {
+        k.submitted = false;
+        submit = true;
+      }
+    } else if (focused) {
       for (const e of this.keys) {
         if (e.key === 'Backspace') value = value.slice(0, -1);
         else if (e.key === 'Enter') submit = true;
@@ -379,8 +416,22 @@ export class GUI {
     const s = (this.scrolls[id] = this.scrolls[id] || { y: 0, v: 0 });
     const max = Math.max(0, contentH - h);
     if (this.over(x, y, w, h) && this.wheel) s.v += this.wheel * 0.9;
+    // drag to scroll (fingers, or a mouse if you like)
+    const ax = x + this.ox, ay = y + this.oy;
+    const pressInside = this.inputOK && this.pressX >= ax && this.pressX < ax + w && this.pressY >= ay && this.pressY < ay + h;
+    if (pressInside && max > 0 && this.down && this.dragged && !this.dragScrollId) this.scrollCandidates.push({ id, area: w * h });
+    if (this.dragScrollId === id) {
+      if (this.down) {
+        s.y -= this.dy;
+        s.v = 0;
+        s.fling = -this.dy;
+      } else if (s.fling) {
+        s.v = s.fling * 2.6;
+        s.fling = 0;
+      }
+    }
     s.y += s.v * 0.35;
-    s.v *= 0.65;
+    s.v *= this.dragScrollId === id ? 0.9 : 0.65;
     if (s.stick && s.atBottom) s.y = max;
     s.y = Math.max(0, Math.min(max, s.y));
     s.atBottom = s.y >= max - 4;
@@ -400,6 +451,7 @@ export class GUI {
 
   // vector cursor drawn last
   drawCursor() {
+    if (this.touch) return;
     if (this.mx < 0 || this.my < 0 || this.mx > this.W || this.my > this.H) return;
     const ctx = this.ctx;
     ctx.save();

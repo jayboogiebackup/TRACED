@@ -165,13 +165,10 @@ export function createBasement() {
   strip(0.01, doorH, doorX + doorW / 2 + 0.004, doorBase + doorH / 2);
   strip(doorW, 0.016, doorX, doorBase + 0.006);
   room.add(leaks);
-  const crackLight = new THREE.PointLight(0xffd9a0, 1.2, 2.6, 2);
-  crackLight.position.set(doorX, doorBase + 0.8, RZ0 + 0.35);
+  // one light does double duty: warm spill from under the door, falling down the stairwell
+  const crackLight = new THREE.PointLight(0xe8dcc4, 2.6, 4.2, 1.5);
+  crackLight.position.set(doorX, doorBase + 0.6, RZ0 + 0.6);
   room.add(crackLight);
-  // a little cold light falls down the stairwell from somewhere up there
-  const wellLight = new THREE.PointLight(0x9fb0cc, 3.2, 4.5, 1.5);
-  wellLight.position.set(doorX, SH - 0.4, 0.2);
-  room.add(wellLight);
   // someone in the doorway (only when it opens)
   const copMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
   const cop = new THREE.Group();
@@ -196,7 +193,7 @@ export function createBasement() {
     pos: new THREE.Vector3(doorX, doorBase + 1.0, RZ0 + 0.05),
     camPos: new THREE.Vector3(-1.02, 1.25, 1.65),
   };
-  parts.crack = { mat: leakMat, light: crackLight, base: 1.2 };
+  parts.crack = { mat: leakMat, light: crackLight, base: 2.6 };
   parts.feet = { visible: false, position: new THREE.Vector3() }; // shadows are faked by dimming the leaks
 
   // ── high window with bars (back wall, right)
@@ -275,9 +272,6 @@ export function createBasement() {
   const pilot = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.03), new THREE.MeshBasicMaterial({ map: radial(64), color: 0x5aa0ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   pilot.position.set(2.05, 0.12, -0.96);
   room.add(pilot);
-  const pilotLight = new THREE.PointLight(0x4a8cff, 0.12, 0.8, 2);
-  pilotLight.position.copy(pilot.position);
-  room.add(pilotLight);
 
   // ── shelves, boxes, cans
   const shelfMat = new THREE.MeshStandardMaterial({ map: w.map, color: 0x666666, roughness: 0.9 });
@@ -412,16 +406,12 @@ export function createBasement() {
   room.add(amb);
   parts.amb = amb;
 
-  // police lights pouring through the window (red / blue) and a sweeping flashlight
-  const red = new THREE.SpotLight(0xff2020, 0, 8, 0.5, 0.6, 1);
-  const blue = new THREE.SpotLight(0x2050ff, 0, 8, 0.5, 0.6, 1);
-  for (const l of [red, blue]) {
-    l.position.set(winX, winY + 0.1, RZ0 - 0.5);
-    room.add(l, l.target);
-  }
-  red.target.position.set(0.2, 0.6, 0.5);
-  blue.target.position.set(-0.6, 0.8, 0.2);
-  parts.police = { red, blue };
+  // police lights pouring through the window: one light that flips red ↔ blue and swings
+  const siren = new THREE.SpotLight(0xff2020, 0, 8, 0.55, 0.6, 1);
+  siren.position.set(winX, winY + 0.1, RZ0 - 0.5);
+  siren.target.position.set(0.2, 0.6, 0.5);
+  room.add(siren, siren.target);
+  parts.police = { siren };
   const flash = new THREE.SpotLight(0xf2f5ff, 0, 9, 0.22, 0.4, 1);
   flash.position.set(winX, winY, RZ0 - 0.4);
   flash.castShadow = true;
@@ -508,7 +498,8 @@ export function createDeskProps() {
   });
   const mugBody = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.037, 0.095, 24, 1, true), mugMat);
   mugBody.position.y = 0.0475;
-  mugBody.rotation.y = -1.9;
+  // turn the printed side towards the chair
+  mugBody.rotation.y = -2.9;
   const mugIn = new THREE.Mesh(new THREE.CircleGeometry(0.038, 24), new THREE.MeshStandardMaterial({ color: 0x1a0f08, roughness: 0.2 }));
   mugIn.rotation.x = -Math.PI / 2;
   mugIn.position.y = 0.075;

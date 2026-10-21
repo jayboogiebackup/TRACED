@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>TRACED</title>
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="You picked up. Now they know where you are. Make $1,000,000 before they find you." />
@@ -13,8 +16,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%23ddd'%3E%E2%98%8E%3C/text%3E%3C/svg%3E"
     />
-    <script type="module" crossorigin src="./assets/index-LGlW-iMx.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-AjtfoKNu.css">
+    <script type="module" crossorigin src="./assets/index-DRBVMP1l.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B08GWRMt.css">
   </head>
   <body>
     <div id="root">
@@ -60,6 +63,36 @@
         <div class="end-lines typewriter"></div>
         <div class="end-stats typewriter-lite"></div>
         <div class="end-btn typewriter hidden">play again</div>
+      </div>
+
+      <!-- touch controls (phones & tablets) -->
+      <div id="hud" class="hidden">
+        <button class="hud-btn typewriter" data-act="pause" aria-label="pause">❚❚</button>
+        <button class="hud-btn typewriter" data-act="lean" aria-label="lean back"><span>⤢</span><small>lean</small></button>
+        <button class="hud-btn typewriter" data-act="look" aria-label="look around"><span>◎</span><small>look</small></button>
+      </div>
+
+      <!-- the rotary dial, for thumbs -->
+      <div id="dialpad" class="hidden typewriter">
+        <div class="pad-keys">
+          <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+          <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+          <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+          <button data-k="Backspace">⌫</button><button data-k="0">0</button><button data-k="Enter" class="call">call</button>
+        </div>
+        <button class="pad-hang" data-k="Escape">hang up</button>
+      </div>
+
+      <!-- phones: the laptop needs landscape -->
+      <div id="rotate" class="hidden typewriter">
+        <div class="rot-phone"></div>
+        <div class="rot-main">turn your phone sideways</div>
+        <div class="rot-sub">the laptop needs the whole screen</div>
+      </div>
+
+      <div id="title" class="typewriter hidden">
+        <div class="title-main">TRACED</div>
+        <div class="title-sub">make $1,000,000 before they find you.</div>
       </div>
 
       <div id="fade"></div>

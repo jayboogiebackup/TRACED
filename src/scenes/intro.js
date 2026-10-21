@@ -33,7 +33,7 @@ export function createIntro(engine) {
   spot.position.set(0.12, 1.2, 0.55);
   spot.target.position.set(0, 0.04, 0);
   spot.castShadow = true;
-  spot.shadow.mapSize.set(2048, 2048);
+  spot.shadow.mapSize.set(1024, 1024);
   spot.shadow.bias = -0.0004;
   spot.shadow.normalBias = 0.01;
   spot.shadow.radius = 7;
@@ -104,9 +104,14 @@ export function createIntro(engine) {
   state.update = (dt) => {
     t += dt;
     phone.update(dt);
+    engine.liveShadows = true; // the phone buzzes, so its shadow has to keep up
     // slow creeping dolly + breathing + a little parallax from the mouse
     const d = state.drift;
-    const target = camBase.clone();
+    // narrow (portrait) screens: back the camera off until phone + cord fit the width
+    const hw = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+    const fit = Math.max(1, 0.5 / (2 * hw) / camBase.distanceTo(lookBase));
+    const target = lookBase.clone().addScaledVector(camBase.clone().sub(lookBase), fit);
+    scene.fog.density = 0.55 / fit;
     target.x += Math.sin(t * 0.21) * 0.012 * d + mouse.x * 0.02 * d;
     target.y += Math.sin(t * 0.33) * 0.006 * d + mouse.y * 0.012 * d;
     target.z -= Math.min(t * 0.0022, 0.08) * d;

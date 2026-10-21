@@ -15,6 +15,8 @@ import { DataMart } from '../os/apps/datamart.js';
 import { Burner, Scanner } from '../os/apps/burner.js';
 import { Files, Notepad, Photo, Terminal } from '../os/apps/system.js';
 import { audio } from '../core/audio.js';
+import { device } from '../core/device.js';
+import { createKeyboard } from '../ui/keyboard.js';
 import { G, mining, heatRate, addMoney, addHeat, on, emit, secret } from '../game/state.js';
 
 const tipEl = document.querySelector('#tip');
@@ -49,10 +51,16 @@ export function createGame(engine) {
   const rigs = createRigs();
   scene.add(rigs.group);
 
-  // a faint cold fill that rises while you're on the phone, so you can see it
-  const callLight = new THREE.PointLight(0xc8d4ff, 0, 1.2, 1.5);
-  callLight.position.set(-0.25, DESK_Y + 0.35, -0.4);
-  scene.add(callLight);
+  // a faint cold fill that rises while you're on the phone, so you can see it. It's the
+  // hanging bulb's light, recycled once the bulb dies — one less light to pay for.
+  const callLight = P.bulb.light;
+  const bulbToCallLight = () => {
+    callLight.intensity = 0;
+    callLight.color.setHex(0xc8d4ff);
+    callLight.distance = 1.2;
+    callLight.decay = 1.5;
+    callLight.position.set(-0.25, DESK_Y + 0.35, -0.4);
+  };
 
   // ── you, and the thing behind you (only the hidden photo camera sees these)
   const ghostLayer = 1;
@@ -90,7 +98,10 @@ export function createGame(engine) {
   scene.add(you, figure, flashBulb);
 
   // ── the operating system on the screen
-  const os = new OS(laptop.screenCanvas);
+  // phones get a phone-sized OS; any touch device gets the on-screen keyboard bridge
+  const os = new OS(laptop.screenCanvas, { mobile: device.phone, touch: device.touch });
+  const kbd = device.touch ? createKeyboard() : null;
+  os.g.kbd = kbd;
   os.register('readme', { title: 'README.txt', label: 'README', icon: 'readme', create: (o) => ({ draw: (...a) => o.app('notepad').draw(...a), onOpen: () => (o.app('notepad').file = 'README.txt') }), w: 700, h: 600 });
   os.register('miner', Miner);
   os.register('rigmart', RigMart);
@@ -108,6 +119,25 @@ export function createGame(engine) {
   os.register('files', Files);
   os.register('notepad', Notepad);
   os.register('photo', Photo);
+  // one-line descriptions for the start menu
+  const TAGS = {
+    readme: 'how to play',
+    miner: 'mine bitcoin',
+    rigmart: 'buy hardware',
+    casino: 'gamble it all',
+    organs: 'sell your organs',
+    chirp: 'post · pump · dump',
+    arcade: 'flash games',
+    stonks: 'trade stocks',
+    velvet: 'darknet market',
+    datamart: 'hack & sell data',
+    safenet: 'slow the police',
+    burner: 'texts · send payment',
+    scanner: 'police radio',
+    terminal: 'command line',
+    files: 'documents',
+  };
+  for (const id in TAGS) os.apps[id].def.tag = TAGS[id];
   os.order.forEach((id) => os.app(id));
 
   // ── photo of you, from behind, with something standing there
@@ -174,10 +204,12 @@ export function createGame(engine) {
     laptop.screen.getWorldPosition(screenCenter);
     screenNormal.set(0, 0, 1).transformDirection(laptop.screen.matrixWorld);
   }
+  // on phones the laptop screen fills the whole display — it *is* your screen
+  const fillH = device.phone ? 0.97 : 0.78, fillW = device.phone ? 0.985 : 0.88;
   function closeDistance() {
     const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const dh = 0.201 / (0.78 * 2 * tanH);
-    const dw = 0.322 / (0.88 * 2 * tanH * camera.aspect);
+    const dh = 0.201 / (fillH * 2 * tanH);
+    const dw = 0.322 / (fillW * 2 * tanH * camera.aspect);
     return Math.max(dh, dw);
   }
   const farPos = new THREE.Vector3(-0.02, 1.36, 0.68);
@@ -189,12 +221,12 @@ export function createGame(engine) {
     screenFrame();
     cam.zoom += (cam.zoomT - cam.zoom) * Math.min(1, dt * 4);
     const close = screenCenter.clone().addScaledVector(screenNormal, closeDistance());
-    close.y += 0.03;
+    if (!device.phone) close.y += 0.03;
     tmpPos.copy(close).lerp(farPos, cam.zoom);
     tmpLook.copy(screenCenter).lerp(farLook, cam.zoom);
-    tmpLook.y -= 0.012 * (1 - cam.zoom);
-    // breathing, lung damage, shock
-    const sw = 0.0025 + cam.sway * 0.012;
+    if (!device.phone) tmpLook.y -= 0.012 * (1 - cam.zoom);
+    // breathing, lung damage, shock (gentler on phones, where the screen is the whole view)
+    const sw = (device.phone ? 0.0008 : 0.0025) + cam.sway * 0.012;
     tmpPos.x += Math.sin(camT * 0.7) * sw;
     tmpPos.y += Math.sin(camT * 1.1) * sw * 0.7;
     if (cam.override) {
@@ -277,6 +309,7 @@ export function createGame(engine) {
     phone,
     rigs,
     callLight,
+    bulbToCallLight,
     room: P,
     desk: D,
     mode: 'idle', // idle | play | cutscene | ending
@@ -303,6 +336,8 @@ export function createGame(engine) {
     tipEl.style.left = e.clientX + 16 + 'px';
     tipEl.style.top = e.clientY + 14 + 'px';
   });
+  const feedPointer = (hit) => os.pointer(hit.uv.x * laptop.screenCanvas.width, (1 - hit.uv.y) * laptop.screenCanvas.height);
+  let releaseFrames = 0;
   canvas.addEventListener('pointerdown', (e) => {
     ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     lastX = e.clientX;
@@ -314,14 +349,44 @@ export function createGame(engine) {
       return;
     }
     if (e.button !== 0) return;
+    const touch = e.pointerType === 'touch';
     pick();
-    if (screenHit) os.press();
-    else if (hovered && (state.mode === 'play' || hovered.always)) hovered.fn();
+    // "look around" mode (touch): tap things in the room, drag anywhere else to turn your head
+    if (state.lookMode) {
+      if (hovered && state.mode === 'play') hovered.fn();
+      else if (state.mode === 'play') cam.looking = true;
+      return;
+    }
+    if (screenHit) {
+      feedPointer(screenHit);
+      os.press();
+      // touch: run the laptop a frame right now, so a tapped text field can open the
+      // phone's keyboard while we're still inside the tap
+      if (device.touch) {
+        os.draw(0);
+        laptop.screenTex.needsUpdate = true;
+        if (kbd) kbd.focus();
+      }
+    } else if (hovered && (state.mode === 'play' || hovered.always)) hovered.fn();
+    else if (touch && state.mode === 'play') cam.looking = true; // drag the dark to look around
   });
   window.addEventListener('pointerup', (e) => {
-    if (e.button === 2) cam.looking = false;
+    if (e.button === 2 || e.pointerType === 'touch' || state.lookMode) cam.looking = false;
     if (e.button === 0) os.release();
+    if (e.pointerType === 'touch') releaseFrames = 2; // then forget where the finger was
+    if (kbd) kbd.focus();
   });
+
+  // touch HUD hooks
+  state.toggleLean = () => {
+    cam.zoomT = cam.zoomT > 0.5 ? 0 : 1;
+    return cam.zoomT > 0.5;
+  };
+  state.setLookMode = (on) => {
+    state.lookMode = on;
+    if (on) cam.zoomT = Math.max(cam.zoomT, 0.6);
+    else cam.looking = false;
+  };
   canvas.addEventListener(
     'wheel',
     (e) => {
@@ -346,28 +411,34 @@ export function createGame(engine) {
   });
 
   // ── world updates
-  let canT = 0, ratT = 20, dollLook = 0;
+  let canT = 0, ratT = 20, dollLook = 0, osAccum = 0;
   state.update = (dt, t) => {
     updateCamera(dt);
     pick();
-    // feed the OS the mouse position on its canvas
-    if (screenHit) {
-      const uv = screenHit.uv;
-      os.pointer(uv.x * os.W, (1 - uv.y) * os.H);
-      document.body.classList.add('hide-cursor');
+    // feed the OS the mouse position on its canvas (debug taps can pin it)
+    if (state.pointerLock) {
+      // leave os pointer where the debug helper put it
+    } else if (screenHit && !state.lookMode) {
+      feedPointer(screenHit);
+      if (!device.touch) document.body.classList.add('hide-cursor');
     } else {
       if (!os.g.down) os.pointer(-100, -100);
       document.body.classList.remove('hide-cursor');
     }
+    if (releaseFrames > 0 && --releaseFrames === 0 && !os.g.down) ndc.set(-5, -5);
     canvas.style.cursor = hovered && state.mode === 'play' ? 'pointer' : 'default';
     if (hovered && state.mode === 'play') {
       tipEl.textContent = hovered.label;
       tipEl.classList.add('show');
     } else tipEl.classList.remove('show');
 
-    if (laptop.power > 0.01) {
-      os.draw(dt);
+    // the laptop screen redraws at 40fps (30 on phones / slow machines): redrawing and
+    // re-uploading a 1280×800 canvas every frame was one of the heaviest things here
+    if (laptop.power > 0.01) osAccum += dt;
+    if (laptop.power > 0.01 && osAccum >= 1 / (engine.lowPower || device.phone ? 30 : 40)) {
+      os.draw(Math.min(osAccum, 0.1));
       laptop.screenTex.needsUpdate = true;
+      osAccum = 0;
     }
     // apps that run in the background
     for (const id of os.order) {
@@ -376,6 +447,8 @@ export function createGame(engine) {
     }
 
     laptop.update(dt, t);
+    // shadow maps only re-render while something that casts a shadow is actually moving
+    engine.liveShadows = P.flash.intensity > 0 || rigs.busy || phone.lifted || P.door.cop.visible || laptop.lidPivot.rotation.x > laptop.OPEN + 0.01;
     phone.update(dt);
     const m = mining();
     rigs.update(dt, t, Math.min(1, m.raw / 400 + 0.2));

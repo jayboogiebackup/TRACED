@@ -126,6 +126,13 @@ export const Velvet = {
         }
       },
       draw(g, w, h) {
+        // phones get the same page in a scrolling column with tighter columns
+        if (g.mobile) g.scrollArea('velvetPage', 0, 0, w, h, 650, (aw) => page(g, aw, 650));
+        else page(g, w, h);
+      },
+    };
+    function page(g, w, h) {
+        const M = g.mobile;
         g.rect(0, 0, w, h, '#0e0a0d');
         g.rect(0, 0, w, 64, '#1a0f16');
         g.text('the velvet road', 20, 44, { size: 34, font: TYPE, color: '#ff9ad9' });
@@ -139,7 +146,7 @@ export const Velvet = {
             bg: '#22121c',
             border: '#5a2a48',
             draw: (bx, by, bw, bh) => {
-              g.text('★ Become a VERIFIED BUYER — upload a photo of your ID, get 20% off everything forever', bx + bw / 2, by + bh / 2 + 1, { align: 'center', base: 'middle', size: 15, bold: true, color: '#ffb3e6' });
+              g.text(M ? '★ VERIFIED BUYER — upload your ID, get 20% off forever' : '★ Become a VERIFIED BUYER — upload a photo of your ID, get 20% off everything forever', bx + bw / 2, by + bh / 2 + 1, { align: 'center', base: 'middle', size: 15, bold: true, color: '#ffb3e6', max: bw - 20 });
             },
           }))
             os.modal({
@@ -161,7 +168,8 @@ export const Velvet = {
         }
         y += 40;
         // table header
-        const cols = [20, 280, 420, 560, 700];
+        const cols = M ? [16, 214, 318, 422, 494] : [20, 280, 420, 560, 700];
+        const bw = M ? 136 : 130;
         g.rect(14, y, w - 28, 30, '#1a1218');
         ['PRODUCT', 'SUPPLIER', 'STREET', 'STASH', ''].forEach((t, i) => g.text(t, cols[i], y + 21, { size: 14, bold: true, color: C.dim }));
         y += 34;
@@ -169,14 +177,14 @@ export const Velvet = {
         GOODS.forEach((gd, i) => {
           const ry = y + i * 52;
           g.rect(14, ry, w - 28, 48, i % 2 ? '#120d11' : '#150f14');
-          g.text(gd.name, cols[0], ry + 30, { size: 18, bold: true });
+          g.text(gd.name, cols[0], ry + 30, { size: M ? 16 : 18, bold: true, max: cols[1] - cols[0] - 10 });
           g.text(money(S.buy[gd.id] * disc, 0), cols[1], ry + 30, { size: 18, color: S.buy[gd.id] < gd.base * 0.6 ? C.amber : C.text });
           const hot = S.sell[gd.id] > gd.base * gd.spread * 1.6;
           g.text(money(S.sell[gd.id], 0) + (hot ? ' 🔥' : ''), cols[2], ry + 30, { size: 18, bold: hot, color: hot ? C.green : S.sell[gd.id] < gd.base * gd.spread * 0.6 ? C.red : C.text });
           const inTransit = S.ship.filter((s) => s.id === gd.id).reduce((a, s) => a + s.n, 0);
           g.text(`${S.inv[gd.id]}${inTransit ? ` (+${inTransit} 📦)` : ''}`, cols[3], ry + 30, { size: 18 });
-          if (g.button('vb' + gd.id, cols[4], ry + 7, 130, 34, `BUY ${S.qty}`, { kind: 'primary', size: 15 })) buy(gd, S.qty);
-          if (g.button('vs' + gd.id, cols[4] + 140, ry + 7, 130, 34, `SELL ${Math.min(S.qty, S.inv[gd.id])}`, { kind: 'gold', size: 15, disabled: !S.inv[gd.id] })) sell(gd, S.qty);
+          if (g.button('vb' + gd.id, cols[4], ry + 7, bw, 34, `BUY ${S.qty}`, { kind: 'primary', size: 15 })) buy(gd, S.qty);
+          if (g.button('vs' + gd.id, cols[4] + bw + 10, ry + 7, bw, 34, `SELL ${Math.min(S.qty, S.inv[gd.id])}`, { kind: 'gold', size: 15, disabled: !S.inv[gd.id] })) sell(gd, S.qty);
         });
         y += GOODS.length * 52 + 12;
         // shipments + events
@@ -193,7 +201,6 @@ export const Velvet = {
         g.text('MARKET NEWS', 34 + half + 10, y + 26, { size: 14, bold: true, color: C.dim });
         [...S.events.slice(0, 2), ...S.log.slice(0, 3)].forEach((e, i) => g.text(e.text, 34 + half + 10, y + 54 + i * 24, { size: 14, color: e.c, max: half - 40 }));
         g.text('every sale is noise. some buyers are cops.', w - 30, h - 24, { size: 13, color: C.faint, align: 'right' });
-      },
-    };
+    }
   },
 };

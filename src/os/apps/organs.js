@@ -91,7 +91,7 @@ export const Organs = {
         g.text(money(G.money), w - 20, 42, { size: 22, bold: true, align: 'right', color: C.green });
         const soldCount = ORGANS.filter((x) => !x.repeat && x.id !== 'heart' && o[x.id]).length;
         const list = ORGANS.filter((x) => !x.hidden || soldCount >= 3);
-        const cols = 3, cw = (w - 40) / cols, chh = 176;
+        const cols = g.mobile ? 2 : 3, cw = (w - 40) / cols, chh = g.mobile ? 160 : 176;
         g.scrollArea('organs', 0, 70, w, h - 70, Math.ceil(list.length / cols) * (chh + 12) + 20, (aw) => {
           list.forEach((it, i) => {
             const x = 14 + (i % cols) * ((aw - 14) / cols), y = 10 + Math.floor(i / cols) * (chh + 12);

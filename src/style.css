@@ -485,6 +485,35 @@ body.hide-cursor * {
   padding: 4px 18px;
 }
 
+/* ───────── title drop ───────── */
+#title {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+#title.show {
+  opacity: 1;
+}
+.title-main {
+  font-size: clamp(64px, 14vw, 180px);
+  letter-spacing: 0.18em;
+  margin-right: -0.18em;
+  animation: flicker 2.6s linear infinite;
+}
+.title-sub {
+  font-size: clamp(14px, 1.6vw, 22px);
+  letter-spacing: 0.22em;
+  opacity: 0.7;
+}
+
 #fade {
   position: fixed;
   inset: 0;
@@ -510,4 +539,227 @@ body.hide-cursor * {
 }
 #tip.show {
   opacity: 1;
+}
+
+/* ───────── touch & phones ───────── */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+#stage canvas {
+  touch-action: none;
+}
+#ending {
+  touch-action: pan-y;
+}
+html.touch #tip {
+  display: none;
+}
+#caption {
+  white-space: normal;
+  max-width: 90vw;
+  text-align: center;
+}
+
+/* hidden field that summons the phone keyboard for the laptop's text boxes */
+#kbd {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  font-size: 16px; /* anything smaller makes iOS zoom the page */
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+#hud {
+  position: fixed;
+  z-index: 55;
+  left: max(10px, env(safe-area-inset-left));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hud-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid #ffffff40;
+  background: #000000a8;
+  color: #ffffffd0;
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  gap: 2px;
+  padding: 0;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 0 10px 4px #0008;
+  touch-action: manipulation;
+}
+.hud-btn small {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+}
+.hud-btn.on {
+  border-color: #fff;
+  color: #fff;
+  filter: drop-shadow(0 0 6px white);
+}
+.hud-btn:active {
+  transform: scale(0.94);
+}
+
+#dialpad {
+  position: fixed;
+  z-index: 65;
+  right: max(14px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #000000b8;
+  box-shadow: 0 0 12px 10px #000000c0;
+}
+.pad-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  gap: 8px;
+}
+#dialpad button {
+  height: 46px;
+  border-radius: 23px;
+  border: 1px solid #ffffff55;
+  background: #111;
+  color: #fff;
+  font-family: 'Special Elite', system-ui;
+  font-size: 20px;
+  touch-action: manipulation;
+}
+#dialpad button.call {
+  font-size: 14px;
+  border-color: #5cf08a;
+  color: #5cf08a;
+}
+#dialpad .pad-hang {
+  font-size: 15px;
+  border-color: #ff5c5c;
+  color: #ff9a9a;
+}
+#dialpad button:active {
+  background: #333;
+}
+
+#rotate {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  padding: 24px;
+}
+.rot-phone {
+  width: 46px;
+  height: 80px;
+  border: 2px solid #ffffffc0;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  animation: rot 2.4s ease-in-out infinite;
+}
+.rot-main {
+  font-size: 22px;
+  animation: flicker 3s linear infinite;
+}
+.rot-sub {
+  font-size: 13px;
+  opacity: 0.55;
+}
+@keyframes rot {
+  0%,
+  25% {
+    transform: rotate(0deg);
+  }
+  55%,
+  85% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* phones: everything a size smaller, out of the thumbs' way, clear of the notch */
+html.phone #dialog {
+  width: min(720px, 92vw);
+  bottom: max(10px, env(safe-area-inset-bottom));
+  min-height: 0;
+  padding: 12px 18px 16px;
+}
+html.phone .dlg-text {
+  font-size: 17px;
+}
+html.phone .dlg-speaker {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+html.phone .dlg-choices {
+  gap: 18px;
+  flex-wrap: wrap;
+}
+html.phone .dlg-choice {
+  font-size: 17px;
+  padding: 8px 12px;
+  border: 1px solid #ffffff30;
+}
+html.phone #caption {
+  font-size: 14px;
+  top: max(8vh, env(safe-area-inset-top));
+}
+html.phone #toasts {
+  top: max(10px, env(safe-area-inset-top));
+  right: 50%;
+  transform: translateX(50%);
+  align-items: center;
+}
+html.phone .toast {
+  font-size: 13px;
+  max-width: 86vw;
+}
+html.phone #hint {
+  font-size: 11px;
+  bottom: max(6px, env(safe-area-inset-bottom));
+  white-space: normal;
+  width: 90vw;
+  text-align: center;
+}
+html.phone .pause-title {
+  font-size: 34px;
+}
+html.phone .pause-help {
+  display: none;
+}
+html.phone .end-lines {
+  font-size: 17px;
+}
+html.phone .gate-click {
+  font-size: 1.1em;
 }

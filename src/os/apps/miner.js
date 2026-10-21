@@ -38,8 +38,9 @@ export const Miner = {
       },
       draw(g, w, h, dt) {
         const m = mining();
+        const M = g.mobile;
         // ── MINE button
-        const bx = 24, by = 24, bw = 300, bh = 300;
+        const bx = M ? 14 : 24, by = M ? 8 : 24, bw = M ? 250 : 300, bh = bw;
         const over = g.over(bx, by, bw, bh);
         if (g.hit('mine', bx, by, bw, bh, { onPress: true })) {
           const v = clickValue();
@@ -51,13 +52,14 @@ export const Miner = {
           log.push({ s: `${hex()}${hex()}  share accepted`, c: C.green });
         }
         press = Math.max(0, press - dt * 6);
-        const r = 130 - press * 8;
-        g.circle(bx + bw / 2, by + bh / 2, r + 12, '#0b0f0f', over ? C.amber : C.border, 3);
-        g.circle(bx + bw / 2, by + bh / 2, r, over ? '#2b2414' : '#1c1a12', '#6b5a2a', 2);
-        g.text('₿', bx + bw / 2, by + bh / 2 + 12, { align: 'center', base: 'middle', size: 150, bold: true, font: 'Arial', color: over ? '#ffd56e' : C.amber });
-        g.text('CLICK TO MINE', bx + bw / 2, by + bh + 36, { align: 'center', size: 22, font: HEAD, color: C.dim });
-        g.text(`+${money(clickValue(), 2)} / click`, bx + bw / 2, by + bh + 60, { align: 'center', size: 16, color: C.faint });
-        if (G.elapsed < G.clickBoostUntil) g.text('⚡ VOLT BOOST', bx + bw / 2, by + bh + 82, { align: 'center', size: 16, bold: true, color: C.green });
+        const r = bw * 0.43 - press * 8;
+        const lit = over || press > 0.2;
+        g.circle(bx + bw / 2, by + bh / 2, r + 12, '#0b0f0f', lit ? C.amber : C.border, 3);
+        g.circle(bx + bw / 2, by + bh / 2, r, lit ? '#2b2414' : '#1c1a12', '#6b5a2a', 2);
+        g.text('₿', bx + bw / 2, by + bh / 2 + 12, { align: 'center', base: 'middle', size: bw / 2, bold: true, font: 'Arial', color: lit ? '#ffd56e' : C.amber });
+        g.text(g.touch ? 'TAP TO MINE' : 'CLICK TO MINE', bx + bw / 2, by + bh + (M ? 26 : 36), { align: 'center', size: 22, font: HEAD, color: C.dim });
+        g.text(`+${money(clickValue(), 2)} / ${g.touch ? 'tap' : 'click'}`, bx + bw / 2, by + bh + (M ? 48 : 60), { align: 'center', size: 16, color: C.faint });
+        if (G.elapsed < G.clickBoostUntil) g.text('⚡ VOLT BOOST', bx + bw / 2, by + bh + (M ? 70 : 82), { align: 'center', size: 16, bold: true, color: C.green });
         for (let i = floats.length - 1; i >= 0; i--) {
           const f = floats[i];
           f.t += dt;
@@ -69,12 +71,12 @@ export const Miner = {
         }
 
         // ── stats
-        const sx = 360;
-        let y = 40;
+        const sx = M ? 292 : 360;
+        let y = M ? 30 : 40;
         const row = (k, v, col = C.text) => {
           g.text(k, sx, y, { size: 16, color: C.dim });
           g.text(v, w - 24, y, { size: 20, bold: true, align: 'right', color: col });
-          y += 32;
+          y += M ? 29 : 32;
         };
         row('Hashrate', `${(m.rate * 0.37).toFixed(2)} TH/s`);
         row('Income', `${money(m.rate, m.rate < 100 ? 2 : 0)} / sec`, C.green);
@@ -93,25 +95,31 @@ export const Miner = {
         y += 30;
 
         // ── owned hardware
+        const owned = [...HARDWARE, ...COOLING].filter((it) => G.owned[it.id]);
         g.text('HARDWARE', sx, y + 6, { size: 22, font: HEAD, color: C.dim });
         y += 16;
-        let any = false;
-        for (const it of [...HARDWARE, ...COOLING]) {
-          const n = G.owned[it.id] || 0;
-          if (!n) continue;
-          any = true;
-          y += 22;
-          g.text(`${n}×  ${it.name}`, sx + 4, y, { size: 15, color: C.text, max: w - sx - 40 });
+        if (M) {
+          // one wrapped line on the phone layout
+          const s = owned.map((it) => `${G.owned[it.id]}× ${it.name}`).join(' · ');
+          g.clip(sx, y, w - sx - 20, 60);
+          g.para(s || 'just a laptop. for now.', sx + 4, y + 20, w - sx - 30, { size: 14, color: s ? C.text : C.faint });
+          g.unclip();
+        } else {
+          for (const it of owned) {
+            y += 22;
+            g.text(`${G.owned[it.id]}×  ${it.name}`, sx + 4, y, { size: 15, color: C.text, max: w - sx - 40 });
+          }
+          if (!owned.length) g.text('just a laptop. for now.', sx + 4, y + 22, { size: 15, color: C.faint });
         }
-        if (!any) g.text('just a laptop. for now.', sx + 4, y + 22, { size: 15, color: C.faint });
 
         // ── log
-        const ly = h - 150;
-        g.rect(0, ly, w, 150, '#060808');
+        const logH = M ? 58 : 150;
+        const ly = h - logH;
+        g.rect(0, ly, w, logH, '#060808');
         g.line(0, ly, w, ly, C.border);
-        const shown = log.slice(-6);
-        shown.forEach((l, i) => g.text(l.s, 18, ly + 26 + i * 21, { size: 15, color: l.c, font: FONT }));
-        if (g.button('openshop', w - 230, ly + 96, 206, 40, 'RIGMART →', { kind: 'gold' })) os.open('rigmart');
+        const shown = log.slice(M ? -2 : -6);
+        shown.forEach((l, i) => g.text(l.s, 18, ly + 24 + i * 21, { size: 15, color: l.c, font: FONT, max: w - 280 }));
+        if (g.button('openshop', w - 230, M ? ly + 9 : ly + 96, 206, 40, 'RIGMART →', { kind: 'gold' })) os.open('rigmart');
       },
     };
     return self;
@@ -227,20 +235,28 @@ export const SafeNet = {
             ['Screen', info.screen],
             ['CPU threads', info.cores || '?'],
             ['Memory', info.memory ? `${info.memory} GB+` : 'hidden'],
-            ['Graphics card', info.gpu || 'hidden'],
             ['Battery', info.battery != null ? `${info.battery}% ${info.charging ? '(charging)' : '(on battery)'}` : 'hidden'],
             ['Dark mode', info.dark ? 'yes' : 'no'],
             ['Touchscreen', info.touch ? 'yes' : 'no'],
-            ['Do Not Track', info.dnt ? 'on (most sites ignore it)' : 'off'],
+            ['Do Not Track', info.dnt ? 'on (ignored)' : 'off'],
           ];
-          g.para('This is not part of the game. This is your real device, read by this web page the moment you opened it — no permission prompt, no pop-up. It never left your computer. Most sites aren\'t that polite.', 24, 34, w - 48, { size: 16, color: C.amber });
-          let y = 120;
-          for (const [k, v] of lines) {
-            g.text(k, 40, y, { size: 17, color: C.dim });
-            g.text(String(v), 330, y, { size: 18, bold: true, max: w - 360 });
-            y += 30;
-          }
-          g.para('Add your IP address and every site you visit can sketch you in under a second. A VPN hides the IP. Saying no to "Sign in with Google", face scans and ID uploads hides the rest.', 24, y + 20, w - 48, { size: 16, color: C.green });
+          const ch = h - 112;
+          g.scrollArea('snknows', 0, 0, w, ch, 470, (aw) => {
+            g.para('This is not part of the game. This is your real device, read by this web page the moment you opened it — no permission prompt, no pop-up. It never left your computer. Most sites aren\'t that polite.', 24, 34, aw - 48, { size: 16, color: C.amber });
+            // two columns, graphics card gets its own row (names run long)
+            const colW = (aw - 48) / 2;
+            lines.forEach(([k, v], i) => {
+              const x = 24 + (i % 2) * colW, y = 120 + Math.floor(i / 2) * 32;
+              g.rect(x, y - 22, colW - 12, 30, i % 4 < 2 ? '#0d1311' : '#101614');
+              g.text(k, x + 12, y, { size: 15, color: C.dim });
+              g.text(String(v), x + colW - 26, y, { size: 16, bold: true, align: 'right', max: colW - 170 });
+            });
+            const gy = 120 + Math.ceil(lines.length / 2) * 32;
+            g.rect(24, gy - 22, aw - 60, 30, '#0d1311');
+            g.text('Graphics card', 36, gy, { size: 15, color: C.dim });
+            g.text(info.gpu || 'hidden', aw - 50, gy, { size: 16, bold: true, align: 'right', max: aw - 240 });
+            g.para('Add your IP address and every site you visit can sketch you in under a second. A VPN hides the IP. Saying no to "Sign in with Google", face scans and ID uploads hides the rest.', 24, gy + 46, aw - 48, { size: 16, color: C.green });
+          });
         }
         g.pop();
       },

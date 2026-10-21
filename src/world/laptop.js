@@ -120,6 +120,44 @@ export function createLaptop() {
   sticker.rotation.x = -Math.PI / 2;
   sticker.position.set(0.125, H + 0.0006, 0.085);
   group.add(sticker);
+  // a worn sticker someone should have listened to
+  const vpn = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.05, 0.022),
+    new THREE.MeshStandardMaterial({
+      roughness: 0.6,
+      transparent: true,
+      map: label(256, 112, (ctx) => {
+        ctx.clearRect(0, 0, 256, 112);
+        ctx.fillStyle = '#d9d4c7';
+        ctx.beginPath();
+        ctx.roundRect(4, 4, 248, 104, 18);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 44px Arial';
+        ctx.fillText('USE A VPN', 128, 70);
+        // scuffs
+        ctx.globalCompositeOperation = 'destination-out';
+        for (let i = 0; i < 60; i++) ctx.fillRect(Math.random() * 256, Math.random() * 112, Math.random() * 14, 2);
+      }),
+    }),
+  );
+  vpn.rotation.x = -Math.PI / 2;
+  vpn.rotation.z = 0.12;
+  vpn.position.set(-0.122, H + 0.0006, 0.088);
+  group.add(vpn);
+  // trackpad click bar + side vents
+  const padLine = new THREE.Mesh(new THREE.PlaneGeometry(0.103, 0.0008), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+  padLine.rotation.x = -Math.PI / 2;
+  padLine.position.set(0, H + 0.0006, 0.097);
+  group.add(padLine);
+  const ventMat = new THREE.MeshBasicMaterial({ color: 0x030303 });
+  for (let i = 0; i < 9; i++) {
+    const v = new THREE.Mesh(new THREE.PlaneGeometry(0.012, 0.0022), ventMat);
+    v.rotation.y = Math.PI / 2;
+    v.position.set(W / 2 + 0.0002, H * 0.5, -0.07 + i * 0.008);
+    group.add(v);
+  }
   const ledMat = new THREE.MeshBasicMaterial({ color: 0x9dffb8, toneMapped: false });
   const led = new THREE.Mesh(new THREE.PlaneGeometry(0.004, 0.0015), ledMat);
   led.position.set(-0.16, H * 0.5, D / 2 + 0.0002);
@@ -141,6 +179,24 @@ export function createLaptop() {
   const bezel = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.012, LID_H - 0.01), new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.9 }));
   bezel.position.set(0, LID_H / 2 + 0.003, 0.0002);
   lidPivot.add(bezel);
+  const bezelLogo = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.036, 0.007),
+    new THREE.MeshStandardMaterial({
+      transparent: true,
+      roughness: 0.4,
+      metalness: 0.6,
+      color: 0x8a8a8a,
+      map: label(256, 50, (ctx) => {
+        ctx.clearRect(0, 0, 256, 50);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 40px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GH0ST', 128, 42);
+      }),
+    }),
+  );
+  bezelLogo.position.set(0, 0.0185, 0.0005);
+  lidPivot.add(bezelLogo);
 
   // the live screen
   const screenCanvas = document.createElement('canvas');

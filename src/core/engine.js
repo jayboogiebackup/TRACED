@@ -7,18 +7,33 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { VHSShader } from './vhs.js';
 
+// Resolution steps the engine falls back through if frames get slow. The VHS look hides a
+// lower internal resolution well, so stepping down costs little and buys a lot.
+const PR_STEPS = [1.5, 1.25, 1.0, 0.8, 0.65];
+
 export class Engine {
-  constructor(container) {
+  constructor(container, o = {}) {
     RectAreaLightUniformsLib.init();
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    // phones: no MSAA (the tape filter hides jaggies anyway) and a lower resolution cap
+    const renderer = new THREE.WebGLRenderer({ antialias: !o.phone, powerPreference: 'high-performance' });
+    this.prCap = o.phone ? 1.25 : 1.5;
+    this.prLevel = PR_STEPS.findIndex((p) => p <= Math.min(window.devicePixelRatio || 1, this.prCap));
+    if (this.prLevel < 0) this.prLevel = PR_STEPS.length - 1;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PR_STEPS[this.prLevel]));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
+    // shadows are re-rendered only when something that casts them moves (see frame())
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = true;
     renderer.setClearColor(0x000000, 1);
+    this.liveShadows = false;
+    this.shadowsDirty = true;
+    this.lowPower = false;
+    this.perf = { frames: 0, time: 0, grace: 3 };
     container.appendChild(renderer.domElement);
     this.renderer = renderer;
     this.canvas = renderer.domElement;
@@ -51,7 +66,37 @@ export class Engine {
     this.camera = camera;
     this.renderPass.scene = scene;
     this.renderPass.camera = camera;
+    this.shadowsDirty = true;
+    this.perf.grace = 3; // shader warm-up after a scene change isn't a slow machine
     this.resize();
+  }
+
+  // Watch the real frame rate; if it stays low, step the quality down (never back up,
+  // so it doesn't flicker between settings).
+  watchPerf(realDt) {
+    const p = this.perf;
+    if (document.hidden || realDt > 0.25) return; // tab hidden / one-off hitch
+    if (p.grace > 0) {
+      p.grace -= realDt;
+      return;
+    }
+    p.frames++;
+    p.time += realDt;
+    if (p.time < 2.5) return;
+    const fps = p.frames / p.time;
+    p.frames = 0;
+    p.time = 0;
+    if (fps >= 45) return;
+    if (this.prLevel < PR_STEPS.length - 1) {
+      this.prLevel++;
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PR_STEPS[this.prLevel]));
+      this.resize();
+    } else if (this.bloom.enabled) {
+      this.bloom.enabled = false;
+    }
+    // past the first step, the laptop screen also redraws less often
+    if (this.prLevel >= 2) this.lowPower = true;
+    p.grace = 1.5;
   }
 
   resize() {
@@ -95,6 +140,7 @@ export class Engine {
       requestAnimationFrame(loop);
       let dt = (now - last) / 1000;
       last = now;
+      this.watchPerf(dt);
       if (dt > 0.1) dt = 0.1;
       this.frame(dt, true);
     };
@@ -121,6 +167,10 @@ export class Engine {
       }
     }
     for (const fn of this.updaters) fn(dt, this.time);
+    if (this.liveShadows || this.shadowsDirty) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.shadowsDirty = false;
+    }
     if (render) this.composer.render(dt);
   }
 

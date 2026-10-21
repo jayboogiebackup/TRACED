@@ -198,8 +198,9 @@ export const Chirp = {
         }
       },
       draw(g, w, h) {
-        // ── left column
+        // ── left column (on phones it's taller than the screen, so it scrolls)
         const lw = 400;
+        const left = (h) => {
         g.rect(0, 0, lw, h, '#0d1215');
         g.circle(46, 50, 30, '#1f2a30', C.blue, 2);
         g.text('?', 46, 52, { align: 'center', base: 'middle', size: 32, bold: true, color: C.blue });
@@ -297,6 +298,9 @@ export const Chirp = {
             }
           } else g.text('nobody will ever trust you again. worth it.', 28, h - 40, { size: 14, color: C.dim });
         }
+        };
+        if (g.mobile) g.scrollArea('chirpL', 0, 0, lw, h, 640, () => left(640));
+        else left(h);
 
         // ── feed
         const fx = lw + 10, fw = w - lw - 20;
