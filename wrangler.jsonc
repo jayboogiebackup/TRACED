@@ -1,0 +1,12 @@
+// Cloudflare deploy config. TRACED is a static site: `npm run build` writes it to
+// traced/, and `npx wrangler deploy` uploads that folder as-is. No server code.
+// Having this file also stops Wrangler from trying to rewrite vite.config.js.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // must match the Worker's name in the Cloudflare dashboard
+  "name": "traced",
+  "compatibility_date": "2025-10-01",
+  "assets": {
+    "directory": "./traced",
+  },
+}
