@@ -1,0 +1,513 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  background: #000;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  cursor: default;
+}
+body.hide-cursor,
+body.hide-cursor * {
+  cursor: none !important;
+}
+
+.typewriter {
+  font-family: 'Special Elite', system-ui;
+}
+.typewriter-lite {
+  font-family: 'Anonymous Pro', monospace;
+  font-weight: 400;
+}
+.typewriter-lite-bold {
+  font-family: 'Anonymous Pro', monospace;
+  font-weight: 700;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ───────── reference overlays (1:1) ───────── */
+.vignette,
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+  will-change: transform;
+  transform: translateZ(0);
+}
+.vignette {
+  background: radial-gradient(ellipse at center, #0000 60%, #000000b3);
+}
+.scanlines:before,
+.scanlines:after {
+  content: '';
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+.scanlines:before {
+  width: 100%;
+  height: 2px;
+  z-index: 2147483649;
+  background: #0000004d;
+  opacity: 0.5;
+  animation: scanline 6s linear infinite;
+}
+.scanlines:after {
+  inset: 0;
+  z-index: 2147483648;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.2) 51%);
+  background-size: 100% 4px;
+  animation: scanlines 1s steps(60) infinite;
+}
+@keyframes scanline {
+  0% {
+    transform: translate3d(0, 200000%, 0);
+  }
+}
+@keyframes scanlines {
+  0% {
+    background-position: 0 50%;
+  }
+}
+@keyframes flicker {
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  to {
+    opacity: 1;
+  }
+  20%,
+  24%,
+  55% {
+    opacity: 0.5;
+  }
+}
+
+/* text gets the same tape fringe the 3D image gets */
+.typewriter,
+.typewriter-lite,
+.typewriter-lite-bold {
+  text-shadow:
+    -1px 0 rgba(255, 40, 60, 0.35),
+    1px 0 rgba(40, 200, 255, 0.35);
+}
+
+/* ───────── gate ───────── */
+#gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12vh;
+  cursor: pointer;
+  transition: opacity 1.2s ease;
+}
+#gate.gone {
+  opacity: 0;
+  pointer-events: none;
+}
+.gate-inner {
+  text-align: center;
+  color: #fffc;
+  letter-spacing: 0.1em;
+}
+.gate-line {
+  font-size: 0.8em;
+  opacity: 0.55;
+  margin-bottom: 0.6em;
+}
+.gate-click {
+  font-size: 1.3em;
+  animation: flicker 3s linear infinite;
+}
+
+/* ───────── "PICK UP" prompt, styled like the reference "CALL NOW!" ───────── */
+#prompt {
+  position: fixed;
+  z-index: 40;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-size: clamp(28px, 4.2vw, 64px);
+  color: #fff;
+  padding: 5px 20px;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: flicker 2.4s linear infinite;
+  transition: opacity 0.6s ease;
+}
+
+#caption {
+  position: fixed;
+  z-index: 41;
+  left: 50%;
+  top: 14vh;
+  transform: translateX(-50%);
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  color: #ffffffd0;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#caption.show {
+  opacity: 1;
+}
+
+/* ───────── dialog box (based on the reference .skull-whisper) ───────── */
+#dialog {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%);
+  width: min(880px, 92vw);
+  min-height: 120px;
+  padding: 18px 28px 22px;
+  background: #000c;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 12px 12px #000000e5;
+  color: #fffffff2;
+  cursor: pointer;
+  animation: modalFloat 4s ease-in-out infinite;
+}
+#dialog.no-click {
+  cursor: default;
+}
+@keyframes modalFloat {
+  0% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -5px);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+.dlg-speaker {
+  font-size: 14px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #ffffff8c;
+  margin-bottom: 8px;
+  min-height: 1em;
+}
+.dlg-speaker.danger {
+  color: #ff6b6bcc;
+}
+.dlg-text {
+  font-size: 22px;
+  line-height: 1.45;
+  letter-spacing: 0.05em;
+  white-space: pre-wrap;
+}
+.dlg-text .shake {
+  display: inline-block;
+  animation: shake 0.12s linear infinite;
+}
+@keyframes shake {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(1px, -1px);
+  }
+  50% {
+    transform: translate(-1px, 1px);
+  }
+  75% {
+    transform: translate(1px, 1px);
+  }
+}
+.dlg-next {
+  position: absolute;
+  right: 22px;
+  bottom: 10px;
+  font-size: 14px;
+  opacity: 0;
+  animation: flicker 1.6s linear infinite;
+}
+#dialog.done .dlg-next {
+  opacity: 0.7;
+}
+#dialog.has-choices .dlg-next {
+  display: none;
+}
+.dlg-choices {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.dlg-choices:empty {
+  display: none;
+}
+.dlg-choice {
+  font-size: 22px;
+  padding: 2px 14px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition:
+    opacity 0.2s,
+    filter 0.2s;
+}
+.dlg-choice:hover {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px white) drop-shadow(0 0 12px white);
+}
+
+/* ───────── hints & toasts ───────── */
+#hint {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: #ffffff70;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 1s ease;
+}
+#toasts {
+  position: fixed;
+  z-index: 70;
+  top: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.toast {
+  font-family: 'Special Elite', system-ui;
+  background: #000d;
+  box-shadow: 0 0 10px 8px #000000c0;
+  padding: 8px 16px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.5s,
+    transform 0.5s;
+}
+.toast.show {
+  opacity: 1;
+  transform: none;
+}
+.toast small {
+  display: block;
+  font-family: 'Anonymous Pro', monospace;
+  font-size: 12px;
+  opacity: 0.6;
+  letter-spacing: 0.05em;
+}
+
+/* ───────── pause ───────── */
+#pause {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #000b;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pause-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  letter-spacing: 0.1em;
+}
+.pause-title {
+  font-size: 46px;
+  animation: flicker 4s linear infinite;
+}
+.pause-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 18px;
+  opacity: 0.85;
+}
+.pause-row input[type='range'] {
+  accent-color: #ddd;
+  width: 180px;
+}
+.pause-btn {
+  font-size: 26px;
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 4px 18px;
+}
+.pause-btn:hover,
+.end-btn:hover {
+  filter: drop-shadow(0 0 6px white) drop-shadow(0 0 12px white);
+}
+.pause-help {
+  margin-top: 18px;
+  font-size: 13px;
+  opacity: 0.55;
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ───────── ending ───────── */
+#ending {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 6vh 8vw;
+  gap: 4vh;
+  overflow-y: auto;
+}
+#ending > :first-child {
+  margin-top: auto;
+}
+#ending > :last-child {
+  margin-bottom: auto;
+}
+.end-lines {
+  max-width: 900px;
+  width: 100%;
+  font-size: clamp(18px, 2.1vw, 28px);
+  line-height: 1.55;
+  letter-spacing: 0.06em;
+  color: #fffffff2;
+}
+.end-lines .ln {
+  display: block;
+  min-height: 1.55em;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+.end-lines .ln.show {
+  opacity: 1;
+}
+.end-lines .ln.big {
+  font-size: 1.5em;
+  margin: 0.3em 0;
+}
+.end-lines .ln.dim {
+  opacity: 0;
+  color: #ffffff80;
+}
+.end-lines .ln.dim.show {
+  opacity: 1;
+}
+.end-lines .ln.loud {
+  animation: flicker 3s linear infinite;
+}
+.end-stats {
+  max-width: 900px;
+  width: 100%;
+  font-size: 14px;
+  color: #ffffff90;
+  line-height: 1.8;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transition: opacity 2s ease;
+  white-space: pre-wrap;
+}
+.end-stats.show {
+  opacity: 1;
+}
+.end-stats .trap {
+  color: #ff8a8acc;
+}
+.end-stats .shead {
+  margin-top: 14px;
+}
+.end-stats .sgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 18px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.end-stats .sgrid .no {
+  opacity: 0.35;
+}
+.end-btn {
+  font-size: 26px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  padding: 4px 18px;
+}
+
+#fade {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* hover label for things in the room */
+#tip {
+  position: fixed;
+  z-index: 35;
+  pointer-events: none;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: #ffffffb0;
+  background: #000a;
+  padding: 2px 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+#tip.show {
+  opacity: 1;
+}

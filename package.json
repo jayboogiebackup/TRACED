@@ -1,0 +1,20 @@
+{
+  "name": "one-million-before-they-come",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "@fontsource/anonymous-pro": "^5.3.0",
+    "@fontsource/special-elite": "^5.3.0",
+    "@fontsource/vt323": "^5.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
+}
